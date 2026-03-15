@@ -11,6 +11,7 @@ import com.wisnu.kurniawan.composetodolist.foundation.theme.ListPurple
 import com.wisnu.kurniawan.composetodolist.foundation.theme.ListRed
 import com.wisnu.kurniawan.composetodolist.foundation.theme.ListYellow
 import com.wisnu.kurniawan.composetodolist.foundation.wrapper.DateTimeProviderImpl
+import com.wisnu.kurniawan.composetodolist.model.TaskQuadrant
 import com.wisnu.kurniawan.composetodolist.model.ToDoColor
 import com.wisnu.kurniawan.composetodolist.model.ToDoList
 import com.wisnu.kurniawan.composetodolist.model.ToDoTask
@@ -23,7 +24,10 @@ data class ListDetailState(
     ),
     val newListName: String = "",
     val colors: List<ColorItem> = initialColors(),
-    val taskName: TextFieldValue = TextFieldValue()
+    val taskName: TextFieldValue = TextFieldValue(),
+    val taskQuadrant: TaskQuadrant = TaskQuadrant.fromDbDefault(),
+    val showDeleteTaskConfirmDialog: Boolean = false,
+    val pendingDeleteTask: ToDoTask? = null,
 ) {
     val listDisplayable = list.toToDoListState()
     val validListName = newListName.isNotBlank()

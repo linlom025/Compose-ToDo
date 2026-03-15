@@ -53,27 +53,27 @@ val Typography = Typography(
     titleLarge = TextStyle(
         fontFamily = Sans,
         fontWeight = FontWeight.SemiBold,
-        fontSize = 32.sp,
+        fontSize = 26.sp,
     ),
     titleMedium = TextStyle(
         fontFamily = Sans,
-        fontWeight = FontWeight.Medium,
-        fontSize = 21.sp,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 19.sp,
     ),
     titleSmall = TextStyle(
         fontFamily = Sans,
-        fontWeight = FontWeight.Normal,
+        fontWeight = FontWeight.Medium,
         fontSize = 16.sp,
     ),
     bodyLarge = TextStyle(
         fontFamily = Sans,
         fontWeight = FontWeight.Normal,
-        fontSize = 14.sp,
+        fontSize = 16.sp,
     ),
     bodyMedium = TextStyle(
         fontFamily = Sans,
         fontWeight = FontWeight.Normal,
-        fontSize = 13.sp,
+        fontSize = 14.sp,
     ),
     bodySmall = TextStyle(
         fontFamily = Sans,
@@ -82,7 +82,7 @@ val Typography = Typography(
     ),
     labelLarge = TextStyle(
         fontFamily = Sans,
-        fontWeight = FontWeight.Normal,
+        fontWeight = FontWeight.Medium,
         fontSize = 14.sp,
     ),
     labelMedium = TextStyle(

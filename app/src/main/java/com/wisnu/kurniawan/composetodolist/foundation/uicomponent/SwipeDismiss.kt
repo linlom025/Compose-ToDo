@@ -3,57 +3,45 @@ package com.wisnu.kurniawan.composetodolist.foundation.uicomponent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
-import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Button
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
-import androidx.compose.material3.Text
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.layout.boundsInParent
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.airbnb.lottie.compose.LottieAnimation
-import com.airbnb.lottie.compose.LottieCompositionSpec
-import com.airbnb.lottie.compose.rememberLottieAnimatable
-import com.airbnb.lottie.compose.rememberLottieComposition
-import com.wisnu.kurniawan.composetodolist.R
-import com.wisnu.kurniawan.composetodolist.foundation.uiextension.drawGrowingCircle
-import com.wisnu.kurniawan.composetodolist.foundation.uiextension.guide
-import com.wisnu.kurniawan.composetodolist.foundation.uiextension.guide2
-import com.wisnu.kurniawan.composetodolist.foundation.uiextension.lerp
-import com.wisnu.kurniawan.composetodolist.foundation.uiextension.onPositionInParentChanged
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.absoluteValue
-import kotlin.math.hypot
 
 private const val dismissFraction = 0.4f
 private const val iconShownFraction = 0.07f
+private const val defaultUndoMessage = "\u5df2\u5220\u9664"
+private const val defaultUndoActionLabel = "\u64a4\u9500"
 
 object ContentVisibility {
     const val visible: Float = 1f
@@ -67,6 +55,8 @@ fun SwipeDismiss(
     backgroundSecondaryModifier: Modifier = Modifier,
     content: @Composable (isDismissed: Boolean) -> Unit,
     onDismiss: () -> Unit,
+    onRequestDismiss: (() -> Boolean)? = null,
+    undoEnabled: Boolean = true,
 ) {
     SwipeDismiss(
         modifier = modifier,
@@ -75,87 +65,84 @@ fun SwipeDismiss(
             val iconVisible = fraction.absoluteValue >= iconShownFraction
             val haptic = LocalHapticFeedback.current
 
-            var shouldTriggerHaptic by remember { mutableStateOf(false) }
-            var bounceState by remember { mutableStateOf(false) }
-            val lottieIcon by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.lottie_swipe_delete))
-            val lottieAnimatable = rememberLottieAnimatable()
-            var iconCenter by remember { mutableStateOf(Offset(0f, 0f)) }
+            var hapticDispatched by remember { mutableStateOf(false) }
 
-            val circleFraction by animateFloatAsState(
-                targetValue = if (wouldCompleteOnRelease) ContentVisibility.visible else ContentVisibility.hidden,
-                animationSpec = tween(durationMillis = 300)
-            )
-            val bounceInOut by animateFloatAsState(
-                targetValue = if (bounceState) 1.2f else 1f
+            val backgroundProgress by animateFloatAsState(
+                targetValue = when {
+                    wouldCompleteOnRelease -> ContentVisibility.visible
+                    iconVisible -> 0.6f
+                    else -> ContentVisibility.hidden
+                },
+                animationSpec = MotionTokens.dismissRevealSpec(),
+                label = "dismiss-background-progress"
             )
 
-            val maxRadius = hypot(iconCenter.x.toDouble(), iconCenter.y.toDouble())
+            val iconScale by animateFloatAsState(
+                targetValue = when {
+                    !iconVisible -> 0.85f
+                    wouldCompleteOnRelease -> 1.08f
+                    else -> 1f
+                },
+                animationSpec = MotionTokens.iconScaleSpec(),
+                label = "dismiss-icon-scale"
+            )
+
+            val iconAlpha by animateFloatAsState(
+                targetValue = if (iconVisible) 1f else 0.45f,
+                animationSpec = MotionTokens.iconScaleSpec(),
+                label = "dismiss-icon-alpha"
+            )
 
             LaunchedEffect(wouldCompleteOnRelease) {
-                if (wouldCompleteOnRelease) {
-                    shouldTriggerHaptic = true
-
-                    launch {
-                        bounceState = true
-                        delay(100)
-                        bounceState = false
-                    }
-                }
-
-                if (shouldTriggerHaptic) {
+                if (wouldCompleteOnRelease && !hapticDispatched) {
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                }
-            }
-            LaunchedEffect(iconVisible) {
-                if (iconVisible) {
-                    launch {
-                        delay(50)
-                        lottieAnimatable.animate(
-                            composition = lottieIcon,
-                        )
-                    }
+                    hapticDispatched = true
+                } else if (!wouldCompleteOnRelease) {
+                    hapticDispatched = false
                 }
             }
 
             Box(
-                modifier = backgroundModifier
-                    .fillMaxSize()
+                modifier = backgroundModifier.fillMaxSize()
             ) {
-                // A simple box to draw the growing circle, which emanates from behind the icon
-                Spacer(
+                Box(
                     modifier = backgroundSecondaryModifier
                         .fillMaxSize()
-                        .drawGrowingCircle(
-                            color = MaterialTheme.colorScheme.error,
-                            center = iconCenter,
-                            radius = lerp(
-                                startValue = 0f,
-                                endValue = maxRadius.toFloat(),
-                                fraction = FastOutLinearInEasing.transform(circleFraction)
+                        .background(
+                            color = lerp(
+                                start = MaterialTheme.colorScheme.surfaceVariant,
+                                stop = MaterialTheme.colorScheme.errorContainer,
+                                fraction = backgroundProgress
                             )
                         )
                 )
 
                 Box(
-                    Modifier
+                    modifier = Modifier
                         .align(Alignment.CenterEnd)
                         .padding(horizontal = 16.dp)
-                        .onPositionInParentChanged { iconCenter = it.boundsInParent().center }
                 ) {
-                    LottieAnimation(
-                        lottieIcon,
+                    PgIcon(
+                        imageVector = Icons.Rounded.Delete,
                         modifier = Modifier
-                            .size(32.dp)
-                            .scale(bounceInOut),
-                        progress = {
-                            lottieAnimatable.progress
-                        }
+                            .size(28.dp)
+                            .graphicsLayer {
+                                scaleX = iconScale
+                                scaleY = iconScale
+                            },
+                        tint = lerp(
+                            start = MaterialTheme.colorScheme.onSurfaceVariant,
+                            stop = MaterialTheme.colorScheme.onErrorContainer,
+                            fraction = backgroundProgress
+                        ).copy(alpha = iconAlpha)
                     )
                 }
             }
         },
         content = content,
-        onDismiss = onDismiss
+        onDismiss = onDismiss,
+        onRequestDismiss = onRequestDismiss,
+        undoEnabled = undoEnabled
     )
 }
 
@@ -165,30 +152,68 @@ fun SwipeDismiss(
     background: @Composable (isDismissed: Boolean, fraction: Float) -> Unit,
     content: @Composable (isDismissed: Boolean) -> Unit,
     directions: Set<SwipeToDismissBoxValue> = setOf(SwipeToDismissBoxValue.EndToStart),
-    enter: EnterTransition = expandVertically(),
-    exit: ExitTransition = shrinkVertically(
-        animationSpec = tween(
-            durationMillis = 400,
-        )
+    enter: EnterTransition = expandVertically(
+        animationSpec = MotionTokens.dismissEnterSpec()
     ),
-    onDismiss: () -> Unit
+    exit: ExitTransition = shrinkVertically(
+        animationSpec = MotionTokens.dismissExitSpec(),
+    ),
+    onDismiss: () -> Unit,
+    onRequestDismiss: (() -> Boolean)? = null,
+    undoEnabled: Boolean = true,
+    undoMessage: String = defaultUndoMessage,
+    undoActionLabel: String = defaultUndoActionLabel
 ) {
     var isDismissed by rememberSaveable { mutableStateOf(false) }
+    val snackbarHostState = LocalPgSnackbarHostState.current
+    val currentOnDismiss by rememberUpdatedState(onDismiss)
+    val currentUndoMessage by rememberUpdatedState(undoMessage)
+    val currentUndoActionLabel by rememberUpdatedState(undoActionLabel)
+
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = { value ->
             if (value == SwipeToDismissBoxValue.EndToStart) {
+                val approved = onRequestDismiss?.invoke() ?: true
+                if (!approved) {
+                    return@rememberSwipeToDismissBoxState false
+                }
                 isDismissed = true
-                return@rememberSwipeToDismissBoxState true
+                true
             } else {
-                return@rememberSwipeToDismissBoxState false
+                false
             }
         }
     )
 
     LaunchedEffect(isDismissed) {
-        if (isDismissed) {
-            delay(600)
-            onDismiss()
+        if (!isDismissed) return@LaunchedEffect
+
+        delay(MotionTokens.dismissCommitDelayMillis())
+
+        val hostState = snackbarHostState
+        if (!undoEnabled || hostState == null) {
+            currentOnDismiss()
+            return@LaunchedEffect
+        }
+
+        val autoDismissJob = launch {
+            delay(MotionTokens.undoWindowMillis())
+            hostState.currentSnackbarData?.dismiss()
+        }
+
+        val snackbarResult = hostState.showSnackbar(
+            message = currentUndoMessage,
+            actionLabel = currentUndoActionLabel,
+            duration = SnackbarDuration.Indefinite,
+            withDismissAction = false
+        )
+        autoDismissJob.cancel()
+
+        if (snackbarResult == SnackbarResult.ActionPerformed) {
+            isDismissed = false
+            dismissState.reset()
+        } else {
+            currentOnDismiss()
         }
     }
 
@@ -205,45 +230,10 @@ fun SwipeDismiss(
             enableDismissFromEndToStart = true,
             backgroundContent = {
                 if (dismissState.dismissDirection in directions) {
-                    val fraction = dismissState.progress
-                    background(isDismissed, fraction)
+                    background(isDismissed, dismissState.progress)
                 }
             },
             content = { content(isDismissed) },
         )
-    }
-}
-
-@Preview
-@Composable
-fun LottieSample() {
-    Box(Modifier.fillMaxSize().guide(), contentAlignment = Alignment.Center) {
-        var playLottieIcon by remember { mutableStateOf(false) }
-
-        Column {
-            val lottieIcon by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.lottie_swipe_delete))
-            val lottieAnimatable = rememberLottieAnimatable()
-            LottieAnimation(
-                lottieIcon,
-                modifier = Modifier.size(32.dp).guide2().padding(16.dp),
-                progress = {
-                    lottieAnimatable.progress
-                }
-            )
-
-            Spacer(Modifier.height(16.dp))
-
-            LaunchedEffect(playLottieIcon) {
-                lottieAnimatable.animate(
-                    composition = lottieIcon,
-                )
-            }
-        }
-
-        Button(onClick = {
-            playLottieIcon = true
-        }, Modifier.align(Alignment.BottomCenter).padding(16.dp)) {
-            Text("Play")
-        }
     }
 }

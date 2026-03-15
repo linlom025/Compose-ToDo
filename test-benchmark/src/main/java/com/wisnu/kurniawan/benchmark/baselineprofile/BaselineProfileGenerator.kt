@@ -1,7 +1,6 @@
 package com.wisnu.kurniawan.benchmark.baselineprofile
 
 import androidx.benchmark.macro.junit4.BaselineProfileRule
-import androidx.test.uiautomator.By
 import org.junit.Rule
 import org.junit.Test
 
@@ -15,7 +14,7 @@ class BaselineProfileGenerator {
     @Test
     fun startup() =
         baselineProfileRule.collect(
-            packageName = "com.wisnu.kurniawan.composetodolist"
+            packageName = "com.lltodo.app"
         ) {
             pressHome()
             // This block defines the app's critical user journey. Here we are interested in
@@ -24,10 +23,15 @@ class BaselineProfileGenerator {
             startActivityAndWait()
             device.waitForIdle()
 
-            device.run {
-                findObject(By.text("Today"))
-                    .click()
-                waitForIdle()
+            repeat(2) {
+                device.swipe(
+                    device.displayWidth / 2,
+                    (device.displayHeight * 0.8).toInt(),
+                    device.displayWidth / 2,
+                    (device.displayHeight * 0.3).toInt(),
+                    18
+                )
+                device.waitForIdle()
             }
         }
 }

@@ -25,49 +25,39 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.ChevronLeft
 import androidx.compose.material.icons.rounded.ChevronRight
-import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Event
 import androidx.compose.material.icons.rounded.RadioButtonUnchecked
 import androidx.compose.material.icons.rounded.Repeat
 import androidx.compose.material.icons.rounded.Schedule
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDefaults
-import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.DisplayMode
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TimePickerState
-import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.wisnu.foundation.coredatetime.toLocalDateTime
-import com.wisnu.foundation.coredatetime.toMillis
 import com.wisnu.kurniawan.composetodolist.R
 import com.wisnu.kurniawan.composetodolist.foundation.extension.displayable
 import com.wisnu.kurniawan.composetodolist.foundation.extension.isExpired
@@ -79,11 +69,16 @@ import com.wisnu.kurniawan.composetodolist.foundation.theme.DividerAlpha
 import com.wisnu.kurniawan.composetodolist.foundation.theme.ListBlue
 import com.wisnu.kurniawan.composetodolist.foundation.theme.ListRed
 import com.wisnu.kurniawan.composetodolist.foundation.theme.MediumRadius
+import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.PgConfirmDeleteDialog
 import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.PgIcon
 import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.PgIconButton
+import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.PgIconButtonSize
+import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.PgIconButtonVariant
 import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.PgPageLayout
+import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.PgDatePickerDialog
 import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.PgTimePickerDialog
 import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.PgToDoItemCell
+import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.MotionTokens
 import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.dateTimeDisplayable
 import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.dueDateDisplayable
 import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.noteUpdatedAtDisplayable
@@ -92,13 +87,8 @@ import com.wisnu.kurniawan.composetodolist.foundation.viewmodel.HandleEffect
 import com.wisnu.kurniawan.composetodolist.model.ToDoStatus
 import com.wisnu.kurniawan.composetodolist.model.ToDoStep
 import com.wisnu.kurniawan.composetodolist.model.ToDoTask
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalTime
-import java.time.ZoneId
-import java.time.ZoneOffset
 
 @Composable
 fun StepScreen(
@@ -109,7 +99,6 @@ fun StepScreen(
     onClickStep: (String) -> Unit,
     onClickTaskDelete: () -> Unit,
     onClickRepeatItem: () -> Unit,
-    onClickUpdateNote: () -> Unit,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
@@ -128,6 +117,7 @@ fun StepScreen(
         steps = state.task.steps,
         color = state.color.toColor(),
         listState = listState,
+        showDeleteTaskConfirmDialog = state.showDeleteTaskConfirmDialog,
 
         showDueDatePicker = state.showDueDatePicker,
         dueDateInitial = state.dueDateInitial,
@@ -141,10 +131,14 @@ fun StepScreen(
         onClickStep = { onClickStep(it.id) },
         onClickStepStatus = { viewModel.dispatch(StepAction.StepItemAction.Edit.OnToggleStatus(it)) },
         onSwipeToDeleteStep = { viewModel.dispatch(StepAction.StepItemAction.Edit.Delete(it)) },
-        onClickTaskDelete = {
-            viewModel.dispatch(StepAction.TaskAction.Delete)
+        onRequestTaskDelete = {
+            viewModel.dispatch(StepAction.TaskAction.RequestDelete)
+        },
+        onConfirmTaskDelete = {
+            viewModel.dispatch(StepAction.TaskAction.ConfirmDelete)
             onClickTaskDelete()
         },
+        onDismissTaskDelete = { viewModel.dispatch(StepAction.TaskAction.DismissDelete) },
 
         onClickDueDateItem = {
             viewModel.dispatch(StepAction.TaskAction.EditDueDate)
@@ -173,7 +167,15 @@ fun StepScreen(
         },
 
         onClickRepeatItem = onClickRepeatItem,
-        onClickUpdateNote = onClickUpdateNote
+        isEditingNote = state.isEditingNote,
+        editNote = state.editNote,
+        onClickEditNote = { viewModel.dispatch(StepAction.NoteAction.StartEdit) },
+        onEditNoteChange = { viewModel.dispatch(StepAction.NoteAction.ChangeNote(it)) },
+        onEditNoteFocusChanged = { focused ->
+            if (!focused) {
+                viewModel.dispatch(StepAction.NoteAction.SaveAndStopEdit)
+            }
+        }
     )
 }
 
@@ -184,6 +186,7 @@ private fun StepScreen(
     steps: List<ToDoStep>,
     color: Color,
     listState: LazyListState,
+    showDeleteTaskConfirmDialog: Boolean,
 
     showDueDatePicker: Boolean,
     dueDateInitial: LocalDate,
@@ -197,7 +200,9 @@ private fun StepScreen(
     onClickStep: (ToDoStep) -> Unit,
     onClickStepStatus: (ToDoStep) -> Unit,
     onSwipeToDeleteStep: (ToDoStep) -> Unit,
-    onClickTaskDelete: () -> Unit,
+    onRequestTaskDelete: () -> Unit,
+    onConfirmTaskDelete: () -> Unit,
+    onDismissTaskDelete: () -> Unit,
 
     onClickDueDateItem: () -> Unit,
     onClickDueDateItemSelect: (LocalDate?) -> Unit,
@@ -210,7 +215,11 @@ private fun StepScreen(
     onCheckDueTimeItemChange: (Boolean) -> Unit,
 
     onClickRepeatItem: () -> Unit,
-    onClickUpdateNote: () -> Unit,
+    isEditingNote: Boolean,
+    editNote: TextFieldValue,
+    onClickEditNote: () -> Unit,
+    onEditNoteChange: (TextFieldValue) -> Unit,
+    onEditNoteFocusChanged: (Boolean) -> Unit,
 ) {
     val resources = LocalContext.current.resources
 
@@ -231,8 +240,6 @@ private fun StepScreen(
             dueDateTimeTitle = task.timeDisplayable() ?: stringResource(R.string.todo_add_due_date_time_task),
             steps = steps,
             color = color,
-            note = task.note,
-            noteUpdatedAtTitle = task.noteUpdatedAtDisplayable(),
             listState = listState,
 
             showDueDatePicker = showDueDatePicker,
@@ -257,12 +264,23 @@ private fun StepScreen(
             onCheckDueTimeItemChange = onCheckDueTimeItemChange,
 
             onClickRepeatItem = onClickRepeatItem,
-            onClickUpdateNote = onClickUpdateNote
+            isEditingNote = isEditingNote,
+            editNote = editNote,
+            onClickEditNote = onClickEditNote,
+            onEditNoteChange = onEditNoteChange,
+            onEditNoteFocusChanged = onEditNoteFocusChanged,
+            noteUpdatedAtTitle = task.noteUpdatedAtDisplayable()
         )
 
         StepFooter(
-            title = task.dateTimeDisplayable(),
-            onClickDelete = onClickTaskDelete
+            title = task.dateTimeDisplayable()
+        )
+    }
+
+    if (showDeleteTaskConfirmDialog) {
+        PgConfirmDeleteDialog(
+            onConfirm = onConfirmTaskDelete,
+            onDismiss = onDismissTaskDelete
         )
     }
 }
@@ -273,7 +291,7 @@ private fun StepTitle(
 ) {
     Box(
         modifier = Modifier
-            .height(56.dp)
+            .height(52.dp)
             .fillMaxWidth()
     ) {
         Box(
@@ -283,7 +301,8 @@ private fun StepTitle(
         ) {
             PgIconButton(
                 onClick = onClickBack,
-                color = Color.Transparent
+                variant = PgIconButtonVariant.Ghost,
+                size = PgIconButtonSize.Small
             ) {
                 PgIcon(imageVector = Icons.Rounded.ChevronLeft)
             }
@@ -298,33 +317,15 @@ private fun TaskCell(
     onClickTaskName: () -> Unit,
     onClickTaskStatus: () -> Unit
 ) {
-    val coroutineScope = rememberCoroutineScope()
-
     when (task.status) {
         ToDoStatus.IN_PROGRESS -> {
-            var isChecked by remember { mutableStateOf(false) }
-            var debounceJob: Job? by remember { mutableStateOf(null) }
-
             TaskCell(
                 name = task.name,
                 color = color,
-                leftIcon = if (isChecked) {
-                    Icons.Rounded.CheckCircle
-                } else {
-                    Icons.Rounded.RadioButtonUnchecked
-                },
+                leftIcon = Icons.Rounded.RadioButtonUnchecked,
                 textDecoration = TextDecoration.None,
                 onClick = onClickTaskName,
-                onClickStatus = {
-                    isChecked = !isChecked
-                    debounceJob?.cancel()
-                    if (isChecked) {
-                        debounceJob = coroutineScope.launch {
-                            delay(1000)
-                            onClickTaskStatus()
-                        }
-                    }
-                }
+                onClickStatus = onClickTaskStatus
             )
         }
 
@@ -354,21 +355,24 @@ private fun TaskCell(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
+        shape = MaterialTheme.shapes.large,
+        tonalElevation = 2.dp,
+        color = MaterialTheme.colorScheme.surface
     ) {
         Column {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(all = 8.dp)
+                modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp)
             ) {
                 PgIconButton(
                     onClick = onClickStatus,
-                    color = Color.Transparent,
-                    modifier = Modifier.size(56.dp)
+                    variant = PgIconButtonVariant.Ghost,
+                    size = PgIconButtonSize.Medium
                 ) {
                     PgIcon(
                         imageVector = leftIcon,
                         tint = color,
-                        modifier = Modifier.size(32.dp)
+                        modifier = Modifier.size(22.dp)
                     )
                 }
 
@@ -379,7 +383,7 @@ private fun TaskCell(
             }
 
             HorizontalDivider(
-                modifier = Modifier.padding(start = 56.dp),
+                modifier = Modifier.padding(start = 44.dp),
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = DividerAlpha)
             )
         }
@@ -394,8 +398,6 @@ private fun StepContent(
     dueDateTitle: String,
     dueDateTimeTitle: String,
     steps: List<ToDoStep>,
-    note: String,
-    noteUpdatedAtTitle: String,
     color: Color,
     listState: LazyListState,
 
@@ -421,7 +423,12 @@ private fun StepContent(
     onCheckDueTimeItemChange: (Boolean) -> Unit,
 
     onClickRepeatItem: () -> Unit,
-    onClickUpdateNote: () -> Unit,
+    isEditingNote: Boolean,
+    editNote: TextFieldValue,
+    onClickEditNote: () -> Unit,
+    onEditNoteChange: (TextFieldValue) -> Unit,
+    onEditNoteFocusChanged: (Boolean) -> Unit,
+    noteUpdatedAtTitle: String,
 ) {
     if (showDueTimePicker) {
         val timePickerState = remember {
@@ -442,31 +449,13 @@ private fun StepContent(
     }
 
     if (showDueDatePicker) {
-        val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = dueDateInitial.toMillis(ZoneId.ofOffset("UTC", ZoneOffset.UTC)),
-            initialDisplayedMonthMillis = dueDateInitial.toMillis(ZoneId.ofOffset("UTC", ZoneOffset.UTC)),
-            yearRange = DatePickerDefaults.YearRange,
-            initialDisplayMode = DisplayMode.Picker
-        )
-        val confirmEnabled by remember { derivedStateOf { datePickerState.selectedDateMillis != null } }
-        DatePickerDialog(
-            onDismissRequest = onClickDueDateItemCancel,
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        onClickDueDateItemSelect(datePickerState.selectedDateMillis?.toLocalDateTime()?.toLocalDate())
-                    },
-                    enabled = confirmEnabled
-                ) { Text("Oke") }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = onClickDueDateItemCancel
-                ) { Text(stringResource(R.string.todo_cancel)) }
+        PgDatePickerDialog(
+            initialDate = dueDateInitial,
+            onDismiss = onClickDueDateItemCancel,
+            onConfirm = { date ->
+                onClickDueDateItemSelect(date)
             }
-        ) {
-            DatePicker(state = datePickerState)
-        }
+        )
     }
 
     LazyColumn(
@@ -475,7 +464,11 @@ private fun StepContent(
     ) {
         items(items = steps, key = { item -> item.id }) { item ->
             StepCell(
-                modifier = Modifier.animateItem(fadeInSpec = null, fadeOutSpec = null),
+                modifier = Modifier.animateItem(
+                    fadeInSpec = null,
+                    placementSpec = MotionTokens.listPlacementSpec(),
+                    fadeOutSpec = null
+                ),
                 item = item,
                 color = color,
                 onClick = { onClickStep(item) },
@@ -583,34 +576,40 @@ private fun StepContent(
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp)
                     .clip(shape)
-                    .clickable(onClick = onClickUpdateNote),
+                    .clickable(onClick = onClickEditNote),
                 shape = shape,
                 color = MaterialTheme.colorScheme.secondary
             ) {
                 Column(
                     modifier = Modifier.padding(all = 16.dp)
                 ) {
-                    if (note.isBlank()) {
+                    if (!isEditingNote) {
                         Text(
-                            text = stringResource(R.string.todo_add_note),
-                            style = MaterialTheme.typography.titleSmall,
-                        )
-                    } else {
-                        Text(
-                            text = note,
+                            text = if (task.note.isBlank()) stringResource(R.string.todo_add_note) else task.note,
                             style = MaterialTheme.typography.titleSmall,
                             maxLines = 6,
-                            overflow = TextOverflow.Ellipsis
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                         )
-
-                        Spacer(Modifier.size(8.dp))
-
-                        Text(
-                            text = stringResource(R.string.todo_note) + "・" + noteUpdatedAtTitle,
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = AlphaMedium)
+                    } else {
+                        OutlinedTextField(
+                            value = editNote,
+                            onValueChange = onEditNoteChange,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .onFocusChanged { onEditNoteFocusChanged(it.isFocused) },
+                            minLines = 4,
+                            maxLines = 6,
+                            textStyle = MaterialTheme.typography.bodyMedium
                         )
                     }
+
+                    Spacer(Modifier.size(8.dp))
+
+                    Text(
+                        text = stringResource(R.string.todo_note) + " \u00B7 " + noteUpdatedAtTitle,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = AlphaMedium)
+                    )
                 }
             }
         }
@@ -636,7 +635,7 @@ private fun StepCell(
                 modifier = modifier,
                 name = item.name,
                 color = color,
-                contentPaddingValues = PaddingValues(start = 16.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
+                contentPaddingValues = PaddingValues(start = 12.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
                 leftIcon = Icons.Rounded.RadioButtonUnchecked,
                 textDecoration = TextDecoration.None,
                 onClick = onClick,
@@ -650,7 +649,7 @@ private fun StepCell(
                 modifier = modifier,
                 name = item.name,
                 color = color.copy(alpha = AlphaDisabled),
-                contentPaddingValues = PaddingValues(start = 16.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
+                contentPaddingValues = PaddingValues(start = 12.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
                 leftIcon = Icons.Rounded.CheckCircle,
                 textDecoration = TextDecoration.LineThrough,
                 onClick = onClick,
@@ -670,14 +669,17 @@ private fun StepCellCreator(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surface
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(start = 16.dp, end = 8.dp, top = 8.dp, bottom = 8.dp)
+            modifier = Modifier.padding(start = 12.dp, end = 8.dp, top = 8.dp, bottom = 8.dp)
         ) {
             PgIconButton(
                 onClick = onClick,
-                color = Color.Transparent,
+                variant = PgIconButtonVariant.Ghost,
+                size = PgIconButtonSize.Small
             ) {
                 PgIcon(
                     imageVector = Icons.Rounded.Add,
@@ -800,11 +802,10 @@ private fun ActionContentCell(
 @Composable
 private fun StepFooter(
     title: String,
-    onClickDelete: () -> Unit
 ) {
     Box(
         modifier = Modifier
-            .height(42.dp)
+            .height(44.dp)
             .fillMaxWidth()
     ) {
         Text(
@@ -812,23 +813,6 @@ private fun StepFooter(
             style = MaterialTheme.typography.labelMedium,
             modifier = Modifier.align(Alignment.Center)
         )
-
-        Row(
-            modifier = Modifier
-                .align(Alignment.CenterEnd)
-        ) {
-            PgIconButton(
-                onClick = onClickDelete,
-                color = Color.Transparent,
-                modifier = Modifier
-                    .size(42.dp)
-            ) {
-                PgIcon(
-                    imageVector = Icons.Rounded.Delete,
-                    modifier = Modifier.size(18.dp)
-                )
-            }
-            Spacer(modifier = Modifier.padding(end = 12.dp))
-        }
     }
 }
+

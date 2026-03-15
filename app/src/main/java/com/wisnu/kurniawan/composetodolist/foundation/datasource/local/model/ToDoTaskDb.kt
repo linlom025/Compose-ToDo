@@ -32,6 +32,8 @@ data class ToDoTaskDb(
     val listId: String,
     @ColumnInfo(name = "task_status")
     val status: ToDoStatus,
+    @ColumnInfo(name = "task_quadrant", defaultValue = "2")
+    val quadrant: Int = 2,
     @ColumnInfo(name = "task_dueDate")
     val dueDate: LocalDateTime? = null,
     @ColumnInfo(name = "task_completedAt")

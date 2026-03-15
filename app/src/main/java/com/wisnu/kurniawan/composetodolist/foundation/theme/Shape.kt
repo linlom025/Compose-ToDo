@@ -4,10 +4,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Shapes
 import androidx.compose.ui.unit.dp
 
-val ExtraSmallRadius = 0.dp
-val SmallRadius = 4.dp
-val MediumRadius = 8.dp
-val LargeRadius = 16.dp
+val ExtraSmallRadius = 8.dp
+val SmallRadius = 12.dp
+val MediumRadius = 16.dp
+val LargeRadius = 20.dp
 val ExtraLargeRadius = 24.dp
 
 val Shapes = Shapes(

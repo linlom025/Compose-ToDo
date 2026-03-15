@@ -10,7 +10,9 @@ sealed class StepAction {
         object ClickSave : TaskAction()
         object OnShow : TaskAction()
         object OnToggleStatus : TaskAction()
-        object Delete : TaskAction()
+        object RequestDelete : TaskAction()
+        object ConfirmDelete : TaskAction()
+        object DismissDelete : TaskAction()
         data class ChangeTaskName(val name: TextFieldValue) : TaskAction()
         data class SelectRepeat(val repeatItem: ToDoRepeatItem) : TaskAction()
         data class SelectDueDate(val date: LocalDate?) : TaskAction()
@@ -42,7 +44,8 @@ sealed class StepAction {
     }
 
     sealed class NoteAction : StepAction() {
-        object OnShow : NoteAction()
+        object StartEdit : NoteAction()
         data class ChangeNote(val note: TextFieldValue) : NoteAction()
+        object SaveAndStopEdit : NoteAction()
     }
 }

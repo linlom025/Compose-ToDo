@@ -7,6 +7,8 @@ import androidx.compose.material3.Surface
 import androidx.core.view.WindowCompat
 import com.wisnu.kurniawan.composetodolist.R
 import com.wisnu.kurniawan.composetodolist.features.host.ui.Host
+import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.ObserveSystemMotionScale
+import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.PgSnackbarHostContainer
 import com.wisnu.kurniawan.composetodolist.foundation.window.WindowState
 import com.wisnu.kurniawan.composetodolist.foundation.window.rememberWindowState
 import com.wisnu.kurniawan.composetodolist.runtime.navigation.MainNavHost
@@ -27,7 +29,10 @@ class MainActivity : AppCompatActivity() {
 
             Host {
                 Surface {
-                    MainNavHost(windowState)
+                    PgSnackbarHostContainer {
+                        ObserveSystemMotionScale()
+                        MainNavHost(windowState)
+                    }
                 }
             }
         }

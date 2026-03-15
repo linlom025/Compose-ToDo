@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import java.util.zip.ZipFile
 
 plugins {
     id 'com.android.application'
@@ -8,7 +9,6 @@ plugins {
     id 'dagger.hilt.android.plugin'
     id 'com.google.gms.google-services'
     id 'com.google.firebase.crashlytics'
-    id 'com.google.firebase.firebase-perf'
     id 'androidx.room'
     id 'com.google.protobuf'
     id 'org.jetbrains.kotlin.plugin.compose'
@@ -86,8 +86,8 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled true
-            shrinkResources true
+            minifyEnabled false
+            shrinkResources false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             signingConfig signingConfigs.release
         }
@@ -188,6 +188,7 @@ dependencies {
     implementation libs.androidx.compose.foundation
     implementation libs.androidx.compose.ui
     implementation libs.androidx.compose.widget
+    implementation libs.kizitonwose.calendar.compose
 
 
     ///////////////
@@ -229,16 +230,6 @@ dependencies {
     // Analytics
     implementation platform(libs.google.firebase)
     implementation 'com.google.firebase:firebase-analytics'
-    implementation('com.google.firebase:firebase-perf') {
-        /*
-        Exclusion of protobuf / protolite dependencies is necessary as the
-        datastore-proto brings in protobuf dependencies. These are the source of truth
-        for Now in Android.
-        That's why the duplicate classes from below dependencies are excluded.
-        */
-        exclude group: "com.google.protobuf", module: "protobuf-javalite"
-        exclude group: "com.google.firebase", module: "protolite-well-known-types"
-    }
     implementation 'com.google.firebase:firebase-crashlytics'
     implementation libs.wisnu.foundation.core.analytics
     implementation libs.wisnu.foundation.lib.analyticsmanager
@@ -269,5 +260,99 @@ dependencies {
 tasks.withType(KotlinCompile).configureEach {
     kotlinOptions {
         freeCompilerArgs += '-Xopt-in=kotlin.RequiresOptIn'
+    }
+}
+
+def dashboardEnvironmentDescriptor = "com/wisnu/kurniawan/composetodolist/features/dashboard/data/DashboardEnvironment"
+def dashboardEnvironmentClassFile = file(
+        "$buildDir/intermediates/classes/debug/transformDebugClassesWithAsm/dirs/" +
+                "com/wisnu/kurniawan/composetodolist/features/dashboard/data/DashboardEnvironment.class"
+)
+
+tasks.register("verifyDashboardEnvironmentClass") {
+    group = "verification"
+    description = "Verifies DashboardEnvironment.class exists after debug class transform."
+    dependsOn("transformDebugClassesWithAsm")
+
+    doLast {
+        if (!dashboardEnvironmentClassFile.exists()) {
+            throw new GradleException(
+                    "Missing DashboardEnvironment.class in transformed debug classes. " +
+                            "Expected: ${dashboardEnvironmentClassFile.absolutePath}"
+            )
+        }
+        logger.lifecycle("Verified transformed class: ${dashboardEnvironmentClassFile.absolutePath}")
+    }
+}
+
+tasks.register("verifyDebugApkContainsDashboardEnvironment") {
+    group = "verification"
+    description = "Verifies debug APK dex payload contains DashboardEnvironment descriptor."
+    dependsOn("packageDebug")
+
+    doLast {
+        def apkFile = file("$buildDir/outputs/apk/debug/app-debug.apk")
+        if (!apkFile.exists()) {
+            throw new GradleException("Debug APK not found: ${apkFile.absolutePath}")
+        }
+
+        boolean found = false
+        ZipFile zipFile = new ZipFile(apkFile)
+        try {
+            zipFile.entries().each { entry ->
+                if (entry.name ==~ /classes(\d+)?\.dex/) {
+                    def dexBytes = zipFile.getInputStream(entry).bytes
+                    def dexText = new String(dexBytes, "ISO-8859-1")
+                    if (dexText.contains(dashboardEnvironmentDescriptor)) {
+                        found = true
+                    }
+                }
+            }
+        } finally {
+            zipFile.close()
+        }
+
+        if (!found) {
+            throw new GradleException(
+                    "Descriptor '${dashboardEnvironmentDescriptor}' is missing from debug APK dex files."
+            )
+        }
+        logger.lifecycle("Verified debug APK contains '${dashboardEnvironmentDescriptor}'.")
+    }
+}
+
+tasks.register("safeDebugBuild") {
+    group = "build"
+    description = "Runs clean debug build and validates DashboardEnvironment class + dex packaging."
+    dependsOn("purgeDebugBuildArtifacts", "assembleDebug", "verifyDashboardEnvironmentClass", "verifyDebugApkContainsDashboardEnvironment")
+}
+
+tasks.configureEach { task ->
+    def shouldDisableCacheForDebugTask =
+            task.name == "transformDebugClassesWithAsm" ||
+                    task.name == "dexBuilderDebug" ||
+                    task.name == "mergeProjectDexDebug" ||
+                    task.name == "packageDebug"
+
+    if (shouldDisableCacheForDebugTask) {
+        task.outputs.cacheIf { false }
+    }
+}
+
+tasks.register("purgeDebugBuildArtifacts") {
+    group = "build"
+    description = "Best-effort cleanup for debug artifacts without failing on Windows file locks."
+
+    doLast {
+        def cleanupTargets = [
+                "$buildDir/intermediates/classes/debug/transformDebugClassesWithAsm",
+                "$buildDir/intermediates/dex/debug/mergeProjectDexDebug",
+                "$buildDir/intermediates/project_dex_archive/debug/dexBuilderDebug",
+                "$buildDir/outputs/apk/debug"
+        ]
+
+        cleanupTargets.each { target ->
+            ant.delete(dir: target, failonerror: false, quiet: true)
+        }
     }
 }

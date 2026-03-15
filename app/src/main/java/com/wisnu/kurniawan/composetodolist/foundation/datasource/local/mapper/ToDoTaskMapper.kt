@@ -2,6 +2,7 @@ package com.wisnu.kurniawan.composetodolist.foundation.datasource.local.mapper
 
 import com.wisnu.kurniawan.composetodolist.foundation.datasource.local.model.ToDoTaskDb
 import com.wisnu.kurniawan.composetodolist.foundation.datasource.local.model.ToDoTaskWithSteps
+import com.wisnu.kurniawan.composetodolist.model.TaskQuadrant
 import com.wisnu.kurniawan.composetodolist.model.ToDoStep
 import com.wisnu.kurniawan.composetodolist.model.ToDoTask
 
@@ -22,6 +23,7 @@ fun ToDoTaskDb.toTask(steps: List<ToDoStep> = listOf()): ToDoTask {
         id = id,
         name = name,
         status = status,
+        quadrant = TaskQuadrant.fromDbValue(quadrant),
         steps = steps,
         completedAt = completedAt,
         dueDate = dueDate,
@@ -40,6 +42,7 @@ fun List<ToDoTask>.toTaskDb(listId: String): List<ToDoTaskDb> {
             id = it.id,
             name = it.name,
             status = it.status,
+            quadrant = it.quadrant.dbValue,
             listId = listId,
             dueDate = it.dueDate,
             completedAt = it.completedAt,

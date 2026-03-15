@@ -75,10 +75,6 @@ private fun LargeScreenNavHost(
             SplashScreen(navController = navController, viewModel = viewModel)
         }
 
-        AuthNavHost(navController)
-
-        SettingNavHost(navController, bottomSheetConfig)
-
         composable(HomeFlow.Root.route) {
             if (windowState.isDualPortrait()) {
                 HomeTabletNavHost(navController, 1F, 1F)
@@ -104,21 +100,11 @@ private fun SmallScreenNavHost(
             SplashScreen(navController = navController, viewModel = viewModel)
         }
 
-        AuthNavHost(navController)
-
-        SettingNavHost(navController, bottomSheetConfig)
-
-        HomeNavHost(navController, bottomSheetConfig)
+        HomeNavHost(navController)
 
         ListDetailNavHost(navController, bottomSheetConfig, Icons.Rounded.ChevronLeft)
 
         StepNavHost(navController, bottomSheetConfig)
-
-        ScheduledNavHost(navController, Icons.Rounded.ChevronLeft)
-
-        ScheduledTodayNavHost(navController, Icons.Rounded.ChevronLeft)
-
-        AllNavHost(navController, Icons.Rounded.ChevronLeft)
     }
 }
 
@@ -155,8 +141,7 @@ private fun HomeTabletNavHost(
                     HomeTabletNavHost(
                         navController,
                         navControllerLeft,
-                        navControllerRight,
-                        bottomSheetConfigLeft
+                        navControllerRight
                     )
                 }
             }
@@ -192,14 +177,6 @@ private fun HomeTabletNavHost(
                     ListDetailNavHost(navControllerRight, bottomSheetConfigRight, Icons.Rounded.Close)
 
                     StepNavHost(navControllerRight, bottomSheetConfigRight)
-
-                    ScheduledNavHost(navControllerRight, Icons.Rounded.Close)
-
-                    ScheduledTodayNavHost(navControllerRight, Icons.Rounded.Close)
-
-                    AllNavHost(navControllerRight, Icons.Rounded.Close)
-
-                    SearchNavHost(navControllerRight)
                 }
             }
         }

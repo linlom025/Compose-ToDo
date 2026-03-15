@@ -1,24 +1,49 @@
 package com.wisnu.kurniawan.composetodolist.features.todo.main.ui
 
 import androidx.compose.runtime.Immutable
+import androidx.compose.ui.text.input.TextFieldValue
+import com.wisnu.kurniawan.composetodolist.features.todo.main.data.QuadrantTask
+import com.wisnu.kurniawan.composetodolist.foundation.datasource.local.model.ToDoGroupDb
+import com.wisnu.kurniawan.composetodolist.model.TaskQuadrant
 import com.wisnu.kurniawan.composetodolist.model.ToDoGroup
 import com.wisnu.kurniawan.composetodolist.model.ToDoList
+import com.wisnu.kurniawan.composetodolist.model.ToDoStatus
+import com.wisnu.kurniawan.composetodolist.model.ToDoTask
+import java.time.LocalDate
+import java.time.LocalTime
 
 @Immutable
 data class ToDoMainState(
-    val data: List<ToDoGroup> = listOf(),
-    val currentDate: String = "0",
-    val allTaskCount: String = "0",
-    val scheduledTodayTaskCount: String = "0",
-    val scheduledTaskCount: String = "0",
-    val selectedItemState: SelectedItemState = SelectedItemState.Empty
+    val tasks: List<QuadrantTask> = listOf(),
+    val showCompleted: Boolean = false,
+    val isCreateDialogVisible: Boolean = false,
+    val createQuadrant: TaskQuadrant = TaskQuadrant.fromDbDefault(),
+    val createTaskName: TextFieldValue = TextFieldValue(),
+    val createDueEnabled: Boolean = false,
+    val createDueDate: LocalDate = LocalDate.now(),
+    val createDueTime: LocalTime = LocalTime.of(9, 0),
+    val createNote: TextFieldValue = TextFieldValue(),
+    val showCreateDueDatePicker: Boolean = false,
+    val showCreateDueTimePicker: Boolean = false,
+    val showDeleteTaskConfirmDialog: Boolean = false,
+    val pendingDeleteTask: ToDoTask? = null,
 ) {
-    val items = data.toItemGroup(selectedItemState)
-    val isAllTaskSelected = selectedItemState == SelectedItemState.AllTask
-    val isScheduledTodayTaskSelected = selectedItemState == SelectedItemState.ScheduledTodayTask
-    val isScheduledTaskSelected = selectedItemState == SelectedItemState.ScheduledTask
+    val validCreateTaskName: Boolean = createTaskName.text.isNotBlank()
+
+    val quadrants: Map<TaskQuadrant, List<QuadrantTask>> = TaskQuadrant.entries.associateWith { quadrant ->
+        tasks
+            .filter { it.task.quadrant == quadrant }
+            .let { list ->
+                if (showCompleted) {
+                    list
+                } else {
+                    list.filter { it.task.status != ToDoStatus.COMPLETE }
+                }
+            }
+    }
 }
 
+// Legacy model kept for compatibility with existing tests and helpers.
 sealed class SelectedItemState {
     object Empty : SelectedItemState()
     object AllTask : SelectedItemState()
@@ -27,6 +52,7 @@ sealed class SelectedItemState {
     data class List(val listId: String) : SelectedItemState()
 }
 
+// Legacy model kept for compatibility with existing tests and helpers.
 sealed class ItemMainState {
     data class ItemGroup(
         val group: ToDoGroup
@@ -55,5 +81,46 @@ sealed class ItemMainState {
             override val list: ToDoList,
             override val selected: Boolean,
         ) : ItemListType(list, selected)
+    }
+}
+
+// Legacy mapper kept for compatibility with existing tests and helpers.
+fun List<ToDoGroup>.toItemGroup(selectedItemState: SelectedItemState): List<ItemMainState> {
+    val data = mutableListOf<ItemMainState>()
+
+    forEach {
+        if (it.id != ToDoGroupDb.DEFAULT_ID) {
+            data.add(ItemMainState.ItemGroup(it))
+        }
+        data.addAll(it.lists.toItemListMainState(selectedItemState))
+    }
+
+    return data
+}
+
+private fun List<ToDoList>.toItemListMainState(selectedItemState: SelectedItemState): List<ItemMainState.ItemListType> {
+    return mapIndexed { index, list ->
+        val selected = selectedItemState is SelectedItemState.List && selectedItemState.listId == list.id
+        if (size == 1) {
+            ItemMainState.ItemListType.Single(
+                list = list,
+                selected = selected
+            )
+        } else {
+            when (index) {
+                0 -> ItemMainState.ItemListType.First(
+                    list = list,
+                    selected = selected
+                )
+                lastIndex -> ItemMainState.ItemListType.Last(
+                    list = list,
+                    selected = selected
+                )
+                else -> ItemMainState.ItemListType.Middle(
+                    list = list,
+                    selected = selected
+                )
+            }
+        }
     }
 }

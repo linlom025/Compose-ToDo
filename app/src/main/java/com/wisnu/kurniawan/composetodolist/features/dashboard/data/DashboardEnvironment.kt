@@ -4,9 +4,11 @@ import com.wisnu.foundation.coreloggr.Loggr
 import com.wisnu.kurniawan.composetodolist.features.todo.taskreminder.data.TaskAlarmManager
 import com.wisnu.kurniawan.composetodolist.features.todo.taskreminder.data.TaskNotificationManager
 import com.wisnu.kurniawan.composetodolist.foundation.datasource.local.provider.ToDoTaskProvider
+import com.wisnu.kurniawan.composetodolist.foundation.datasource.preference.provider.ThemeProvider
 import com.wisnu.kurniawan.composetodolist.foundation.datasource.preference.provider.UserProvider
 import com.wisnu.kurniawan.composetodolist.foundation.extension.getScheduledDueDate
 import com.wisnu.kurniawan.composetodolist.foundation.wrapper.DateTimeProvider
+import com.wisnu.kurniawan.composetodolist.model.Theme
 import com.wisnu.kurniawan.composetodolist.model.ToDoTask
 import com.wisnu.kurniawan.composetodolist.model.ToDoTaskDiff
 import com.wisnu.kurniawan.composetodolist.model.User
@@ -20,6 +22,7 @@ import javax.inject.Inject
 class DashboardEnvironment @Inject constructor(
     private val dateTimeProvider: DateTimeProvider,
     private val userProvider: UserProvider,
+    private val themeProvider: ThemeProvider,
     private val toDoTaskProvider: ToDoTaskProvider,
     private val taskAlarmManager: TaskAlarmManager,
     private val notificationManager: TaskNotificationManager
@@ -27,6 +30,14 @@ class DashboardEnvironment @Inject constructor(
 
     override fun getUser(): Flow<User> {
         return userProvider.getUser()
+    }
+
+    override fun getTheme(): Flow<Theme> {
+        return themeProvider.getTheme()
+    }
+
+    override suspend fun setTheme(theme: Theme) {
+        themeProvider.setTheme(theme)
     }
 
     // TODO e2e

@@ -1,6 +1,7 @@
 package com.wisnu.kurniawan.composetodolist.features.todo.detail.ui
 
 import androidx.compose.ui.text.input.TextFieldValue
+import com.wisnu.kurniawan.composetodolist.model.TaskQuadrant
 import com.wisnu.kurniawan.composetodolist.model.ToDoTask
 
 sealed class ListDetailAction {
@@ -23,8 +24,11 @@ sealed class ListDetailAction {
         object ClickImeDone : TaskAction()
         object ClickSubmit : TaskAction()
         object OnShow : TaskAction()
-        data class Delete(val task: ToDoTask) : TaskAction()
+        data class RequestDelete(val task: ToDoTask) : TaskAction()
+        object ConfirmDelete : TaskAction()
+        object DismissDelete : TaskAction()
         data class OnToggleStatus(val task: ToDoTask) : TaskAction()
         data class ChangeTaskName(val name: TextFieldValue) : TaskAction()
+        data class ChangeTaskQuadrant(val quadrant: TaskQuadrant) : TaskAction()
     }
 }

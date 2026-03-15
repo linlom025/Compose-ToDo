@@ -33,6 +33,10 @@ import androidx.compose.ui.unit.LayoutDirection
 import kotlin.math.hypot
 
 @OptIn(ExperimentalComposeUiApi::class)
+@Deprecated(
+    message = "Circular reveal is excluded from the fast motion system. Use MotionTokens-based transitions.",
+    level = DeprecationLevel.WARNING
+)
 @Composable
 fun <T> CircularReveal(
     targetState: T,

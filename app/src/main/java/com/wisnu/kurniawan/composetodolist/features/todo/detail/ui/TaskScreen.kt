@@ -3,6 +3,7 @@ package com.wisnu.kurniawan.composetodolist.features.todo.detail.ui
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -18,16 +19,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.RadioButtonUnchecked
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -44,13 +43,13 @@ import com.wisnu.kurniawan.composetodolist.foundation.extension.identifier
 import com.wisnu.kurniawan.composetodolist.foundation.theme.AlphaDisabled
 import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.PgEmpty
 import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.PgIcon
+import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.MotionTokens
 import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.PgToDoCreator
 import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.PgToDoItemCell
 import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.itemInfoDisplayable
 import com.wisnu.kurniawan.composetodolist.foundation.uiextension.requestFocusImeAware
+import com.wisnu.kurniawan.composetodolist.model.TaskQuadrant
 import com.wisnu.kurniawan.composetodolist.model.ToDoTask
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
@@ -67,24 +66,25 @@ fun TaskCreator(
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 8.dp, start = 16.dp, end = 16.dp, bottom = 32.dp)
-                .height(56.dp)
-                .clip(MaterialTheme.shapes.small)
+                .padding(top = 8.dp, start = 16.dp, end = 16.dp, bottom = 16.dp)
+                .height(52.dp)
+                .clip(MaterialTheme.shapes.medium)
                 .clickable(onClick = onClick),
-            shape = MaterialTheme.shapes.small,
-            color = MaterialTheme.colorScheme.surfaceVariant,
+            shape = MaterialTheme.shapes.medium,
+            color = MaterialTheme.colorScheme.secondary,
+            tonalElevation = 1.dp
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Spacer(Modifier.width(12.dp))
+                Spacer(Modifier.width(10.dp))
 
                 PgIcon(
                     imageVector = Icons.Rounded.Add,
                     tint = color
                 )
 
-                Spacer(Modifier.width(12.dp))
+                Spacer(Modifier.width(10.dp))
 
                 Text(
                     text = text.ifBlank {
@@ -109,7 +109,6 @@ fun TaskContent(
     color: Color,
     listState: LazyListState
 ) {
-    val coroutineScope = rememberCoroutineScope()
     val resources = LocalContext.current.resources
 
     LazyColumn(
@@ -147,7 +146,11 @@ fun TaskContent(
                     }
                     is ToDoTaskItem.Complete -> {
                         PgToDoItemCell(
-                            modifier = Modifier.animateItem(fadeInSpec = null, fadeOutSpec = null),
+                            modifier = Modifier.animateItem(
+                                fadeInSpec = null,
+                                placementSpec = MotionTokens.listPlacementSpec(),
+                                fadeOutSpec = null
+                            ),
                             name = it.toDoTask.name,
                             color = color.copy(alpha = AlphaDisabled),
                             contentPaddingValues = PaddingValues(all = 8.dp),
@@ -156,37 +159,29 @@ fun TaskContent(
                             onClick = { onClick(it.toDoTask) },
                             onSwipeToDelete = { onSwipeToDelete(it.toDoTask) },
                             onStatusClick = { onStatusClick(it.toDoTask) },
-                            info = it.toDoTask.itemInfoDisplayable(resources, MaterialTheme.colorScheme.error)
+                            info = it.toDoTask.itemInfoDisplayable(resources, MaterialTheme.colorScheme.error),
+                            undoEnabled = false,
+                            onRequestDelete = { onSwipeToDelete(it.toDoTask) }
                         )
                     }
                     is ToDoTaskItem.InProgress -> {
-                        var isChecked by remember { mutableStateOf(false) }
-                        var debounceJob: Job? by remember { mutableStateOf(null) }
-
                         PgToDoItemCell(
-                            modifier = Modifier.animateItem(fadeInSpec = null, fadeOutSpec = null),
+                            modifier = Modifier.animateItem(
+                                fadeInSpec = null,
+                                placementSpec = MotionTokens.listPlacementSpec(),
+                                fadeOutSpec = null
+                            ),
                             name = it.toDoTask.name,
                             color = color,
                             contentPaddingValues = PaddingValues(all = 8.dp),
-                            leftIcon = if (isChecked) {
-                                Icons.Rounded.CheckCircle
-                            } else {
-                                Icons.Rounded.RadioButtonUnchecked
-                            },
+                            leftIcon = Icons.Rounded.RadioButtonUnchecked,
                             textDecoration = TextDecoration.None,
                             onClick = { onClick(it.toDoTask) },
                             onSwipeToDelete = { onSwipeToDelete(it.toDoTask) },
-                            onStatusClick = {
-                                isChecked = !isChecked
-                                debounceJob?.cancel()
-                                if (isChecked) {
-                                    debounceJob = coroutineScope.launch {
-                                        delay(1000)
-                                        onStatusClick(it.toDoTask)
-                                    }
-                                }
-                            },
-                            info = it.toDoTask.itemInfoDisplayable(resources, MaterialTheme.colorScheme.error)
+                            onStatusClick = { onStatusClick(it.toDoTask) },
+                            info = it.toDoTask.itemInfoDisplayable(resources, MaterialTheme.colorScheme.error),
+                            undoEnabled = false,
+                            onRequestDelete = { onSwipeToDelete(it.toDoTask) }
                         )
                     }
                 }
@@ -194,7 +189,7 @@ fun TaskContent(
         }
 
         item {
-            Spacer(Modifier.height(250.dp))
+            Spacer(Modifier.height(180.dp))
         }
     }
 }
@@ -211,13 +206,77 @@ fun TaskEditor(
         viewModel.dispatch(ListDetailAction.TaskAction.OnShow)
     }
 
-    PgToDoCreator(
-        value = state.taskName,
-        modifier = Modifier.focusRequester(focusRequest),
-        isValid = state.validTaskName,
-        placeholder = stringResource(R.string.todo_add_task),
-        onValueChange = { viewModel.dispatch(ListDetailAction.TaskAction.ChangeTaskName(it)) },
-        onSubmit = { viewModel.dispatch(ListDetailAction.TaskAction.ClickSubmit) },
-        onNextSubmit = { viewModel.dispatch(ListDetailAction.TaskAction.ClickImeDone) }
+    Column {
+        PgToDoCreator(
+            value = state.taskName,
+            modifier = Modifier.focusRequester(focusRequest),
+            isValid = state.validTaskName,
+            placeholder = stringResource(R.string.todo_add_task),
+            onValueChange = { viewModel.dispatch(ListDetailAction.TaskAction.ChangeTaskName(it)) },
+            onSubmit = { viewModel.dispatch(ListDetailAction.TaskAction.ClickSubmit) },
+            onNextSubmit = { viewModel.dispatch(ListDetailAction.TaskAction.ClickImeDone) }
+        )
+
+        TaskQuadrantSelector(
+            selectedQuadrant = state.taskQuadrant,
+            onSelectQuadrant = {
+                viewModel.dispatch(ListDetailAction.TaskAction.ChangeTaskQuadrant(it))
+            }
+        )
+    }
+}
+
+@Composable
+private fun TaskQuadrantSelector(
+    selectedQuadrant: TaskQuadrant,
+    onSelectQuadrant: (TaskQuadrant) -> Unit
+) {
+    val quadrants = listOf(
+        TaskQuadrant.Q1,
+        TaskQuadrant.Q2,
+        TaskQuadrant.Q3,
+        TaskQuadrant.Q4
     )
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(
+            text = "\u56DB\u8C61\u9650",
+            style = MaterialTheme.typography.titleSmall
+        )
+
+        quadrants.chunked(2).forEach { row ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                row.forEach { quadrant ->
+                    FilterChip(
+                        modifier = Modifier.weight(1f),
+                        selected = selectedQuadrant == quadrant,
+                        onClick = { onSelectQuadrant(quadrant) },
+                        label = {
+                            Text(
+                                text = quadrant.toDisplayName(),
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun TaskQuadrant.toDisplayName(): String {
+    return when (this) {
+        TaskQuadrant.Q1 -> "\u91CD\u8981\u4E14\u7D27\u6025"
+        TaskQuadrant.Q2 -> "\u91CD\u8981\u4E0D\u7D27\u6025"
+        TaskQuadrant.Q3 -> "\u4E0D\u91CD\u8981\u4F46\u7D27\u6025"
+        TaskQuadrant.Q4 -> "\u4E0D\u91CD\u8981\u4E0D\u7D27\u6025"
+    }
 }

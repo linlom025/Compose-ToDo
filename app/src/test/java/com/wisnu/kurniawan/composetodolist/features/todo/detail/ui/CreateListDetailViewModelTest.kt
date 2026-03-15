@@ -12,6 +12,7 @@ import com.wisnu.kurniawan.composetodolist.foundation.wrapper.DateTimeProvider
 import com.wisnu.kurniawan.composetodolist.foundation.wrapper.DateTimeProviderImpl
 import com.wisnu.kurniawan.composetodolist.foundation.wrapper.IdProvider
 import com.wisnu.kurniawan.composetodolist.foundation.wrapper.IdProviderImpl
+import com.wisnu.kurniawan.composetodolist.model.TaskQuadrant
 import com.wisnu.kurniawan.composetodolist.model.ToDoColor
 import com.wisnu.kurniawan.composetodolist.model.ToDoList
 import com.wisnu.kurniawan.composetodolist.model.ToDoTask
@@ -215,7 +216,7 @@ class CreateListDetailViewModelTest : BaseViewModelTest() {
             return flow { emit(Any()) }
         }
 
-        override suspend fun createTask(taskName: String, listId: String) {
+        override suspend fun createTask(taskName: String, listId: String, quadrant: TaskQuadrant) {
 
         }
 
@@ -254,7 +255,7 @@ class CreateListDetailViewModelTest : BaseViewModelTest() {
             return flow { emit(Any()) }
         }
 
-        override suspend fun createTask(taskName: String, listId: String) {
+        override suspend fun createTask(taskName: String, listId: String, quadrant: TaskQuadrant) {
 
         }
 

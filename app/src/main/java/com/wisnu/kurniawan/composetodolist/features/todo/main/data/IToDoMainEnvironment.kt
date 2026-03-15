@@ -1,14 +1,25 @@
 package com.wisnu.kurniawan.composetodolist.features.todo.main.data
 
 import com.wisnu.kurniawan.composetodolist.foundation.wrapper.DateTimeProvider
-import com.wisnu.kurniawan.composetodolist.model.ToDoGroup
-import com.wisnu.kurniawan.composetodolist.model.ToDoList
-import com.wisnu.kurniawan.composetodolist.model.ToDoTaskOverallCount
+import com.wisnu.kurniawan.composetodolist.foundation.wrapper.IdProvider
+import com.wisnu.kurniawan.composetodolist.model.TaskQuadrant
+import com.wisnu.kurniawan.composetodolist.model.ToDoTask
 import kotlinx.coroutines.flow.Flow
+import java.time.LocalDateTime
 
 interface IToDoMainEnvironment {
+    val idProvider: IdProvider
     val dateTimeProvider: DateTimeProvider
-    fun getGroup(): Flow<List<ToDoGroup>>
-    fun getOverallCount(): Flow<ToDoTaskOverallCount>
-    suspend fun deleteList(list: ToDoList)
+    fun loadQuadrantTasks(): Flow<List<QuadrantTask>>
+    suspend fun ensureQuadrantSystemLists()
+    suspend fun migrateUncompletedTaskListIdToQuadrantList()
+    suspend fun createTaskInQuadrant(
+        taskName: String,
+        quadrant: TaskQuadrant,
+        dueDate: LocalDateTime?,
+        isDueDateTimeSet: Boolean,
+        note: String,
+    )
+    suspend fun toggleTaskStatus(task: ToDoTask)
+    suspend fun deleteTask(task: ToDoTask)
 }

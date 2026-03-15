@@ -141,6 +141,12 @@ class ToDoTaskProvider @Inject constructor(
         }
     }
 
+    suspend fun updateTaskList(ids: List<String>, listId: String, updatedAt: LocalDateTime) {
+        withContext(dispatcher) {
+            toDoTaskWriteDao.updateTaskList(ids, listId, updatedAt)
+        }
+    }
+
     suspend fun deleteTaskById(id: String) {
         withContext(dispatcher) {
             toDoTaskWriteDao.deleteTaskById(id)

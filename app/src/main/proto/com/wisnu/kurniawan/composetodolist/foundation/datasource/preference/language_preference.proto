@@ -10,4 +10,5 @@ message UserLanguagePreference {
 enum LanguagePreference {
   ENGLISH = 0;
   INDONESIA = 1;
+  CHINESE = 2;
 }

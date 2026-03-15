@@ -21,6 +21,8 @@ data class StepState(
     val createStepName: TextFieldValue = TextFieldValue(),
     val repeatItems: List<ToDoRepeatItem> = initialRepeatItem(),
     val editNote: TextFieldValue = TextFieldValue(),
+    val isEditingNote: Boolean = false,
+    val showDeleteTaskConfirmDialog: Boolean = false,
     val dueDateInitial: LocalDate = DateTimeProviderImpl().now().toLocalDate(),
     val showDueDatePicker: Boolean = false,
     val dueTimeInitial: LocalTime = DateTimeProviderImpl().now().toLocalTime(),
