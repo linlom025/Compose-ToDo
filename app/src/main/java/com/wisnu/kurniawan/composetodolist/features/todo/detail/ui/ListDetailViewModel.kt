@@ -10,6 +10,7 @@ import com.wisnu.kurniawan.composetodolist.features.todo.detail.data.IListDetail
 import com.wisnu.kurniawan.composetodolist.features.todo.step.ui.ToDoRepeatItem
 import com.wisnu.kurniawan.composetodolist.foundation.extension.toColor
 import com.wisnu.kurniawan.composetodolist.foundation.extension.toToDoColor
+import com.wisnu.kurniawan.composetodolist.model.TaskQuadrant
 import com.wisnu.kurniawan.composetodolist.model.ToDoList
 import com.wisnu.kurniawan.composetodolist.model.ToDoRepeat
 import com.wisnu.kurniawan.composetodolist.model.ToDoStatus
@@ -116,8 +117,17 @@ class ListDetailViewModel @Inject constructor(
             is ListDetailAction.TaskAction.ClickImeDone, ListDetailAction.TaskAction.ClickSubmit -> {
                 viewModelScope.launch {
                     if (state.value.validTaskName) {
-                        environment.createTask(state.value.taskName.text.trim(), state.value.list.id)
-                        setState { copy(taskName = TextFieldValue()) }
+                        environment.createTask(
+                            state.value.taskName.text.trim(),
+                            state.value.list.id,
+                            state.value.taskQuadrant
+                        )
+                        setState {
+                            copy(
+                                taskName = TextFieldValue(),
+                                taskQuadrant = TaskQuadrant.fromDbDefault()
+                            )
+                        }
 
                         val lastIndexProgressItem = state.value.listDisplayable.tasks.filterIsInstance<ToDoTaskItem.InProgress>().size
                         setEffect(ListDetailEffect.ScrollTo(lastIndexProgressItem))
@@ -127,6 +137,11 @@ class ListDetailViewModel @Inject constructor(
             is ListDetailAction.TaskAction.ChangeTaskName -> {
                 viewModelScope.launch {
                     setState { copy(taskName = action.name) }
+                }
+            }
+            is ListDetailAction.TaskAction.ChangeTaskQuadrant -> {
+                viewModelScope.launch {
+                    setState { copy(taskQuadrant = action.quadrant) }
                 }
             }
             is ListDetailAction.TaskAction.OnShow -> {
@@ -139,9 +154,37 @@ class ListDetailViewModel @Inject constructor(
                     environment.toggleTaskStatus(action.task)
                 }
             }
-            is ListDetailAction.TaskAction.Delete -> {
+            is ListDetailAction.TaskAction.RequestDelete -> {
                 viewModelScope.launch {
-                    environment.deleteTask(action.task)
+                    setState {
+                        copy(
+                            pendingDeleteTask = action.task,
+                            showDeleteTaskConfirmDialog = true
+                        )
+                    }
+                }
+            }
+            ListDetailAction.TaskAction.ConfirmDelete -> {
+                viewModelScope.launch {
+                    state.value.pendingDeleteTask?.let { task ->
+                        environment.deleteTask(task)
+                    }
+                    setState {
+                        copy(
+                            pendingDeleteTask = null,
+                            showDeleteTaskConfirmDialog = false
+                        )
+                    }
+                }
+            }
+            ListDetailAction.TaskAction.DismissDelete -> {
+                viewModelScope.launch {
+                    setState {
+                        copy(
+                            pendingDeleteTask = null,
+                            showDeleteTaskConfirmDialog = false
+                        )
+                    }
                 }
             }
         }

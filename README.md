@@ -39,6 +39,11 @@ Compose playground for learning purpose
 * Generate debug apk `./gradlew assembleDebug`
 * Run unit test `./gradlew testDebug`
 * Install on connected device `./gradlew installDebug`
+* Safe debug rebuild (fixes class-cache corruption issues):
+  * `./gradlew safeDebugBuild --no-build-cache --rerun-tasks --no-configuration-cache`
+  * Note: `safeDebugBuild` uses lock-tolerant debug artifact purge (instead of hard `clean`) to avoid Windows file-lock failures.
+  * Windows one-shot script (build + verify + install + startup smoke test):
+    * `powershell -ExecutionPolicy Bypass -File .\scripts\safe-debug-build.ps1`
 
 ## Others
 

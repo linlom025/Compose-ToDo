@@ -37,8 +37,11 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.wisnu.kurniawan.composetodolist.R
 import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.PgButton
+import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.PgConfirmDeleteDialog
 import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.PgIcon
 import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.PgIconButton
+import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.PgIconButtonSize
+import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.PgIconButtonVariant
 import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.PgModalLayout
 import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.PgModalTitle
 import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.PgPageLayout
@@ -96,10 +99,16 @@ fun ListDetailScreen(
         onAddTaskClick = onAddTaskClick,
         onTaskItemClick = { onTaskItemClick(it.id, state.list.id) },
         onTaskStatusItemClick = { viewModel.dispatch(ListDetailAction.TaskAction.OnToggleStatus(it)) },
-        onTaskSwipeToDelete = { viewModel.dispatch(ListDetailAction.TaskAction.Delete(it)) },
+        onTaskSwipeToDelete = { viewModel.dispatch(ListDetailAction.TaskAction.RequestDelete(it)) },
         listState = listState
     )
 
+    if (state.showDeleteTaskConfirmDialog) {
+        PgConfirmDeleteDialog(
+            onConfirm = { viewModel.dispatch(ListDetailAction.TaskAction.ConfirmDelete) },
+            onDismiss = { viewModel.dispatch(ListDetailAction.TaskAction.DismissDelete) }
+        )
+    }
 }
 
 @Composable
@@ -112,7 +121,7 @@ private fun ListDetailTitle(
 ) {
     Box(
         modifier = Modifier
-            .height(56.dp)
+            .height(52.dp)
             .fillMaxWidth()
             .clickable(onClick = onClick)
     ) {
@@ -123,7 +132,8 @@ private fun ListDetailTitle(
         ) {
             PgIconButton(
                 onClick = onClickBack,
-                color = Color.Transparent
+                variant = PgIconButtonVariant.Ghost,
+                size = PgIconButtonSize.Small
             ) {
                 PgIcon(imageVector = backIcon)
             }
@@ -282,8 +292,11 @@ fun CreateListEditor(
                     value = name,
                     onValueChange = { onNameChange(it) },
                     placeholderValue = stringResource(R.string.todo_create_list_hint),
-                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp).height(50.dp).fillMaxWidth(),
-                    shape = MaterialTheme.shapes.large,
+                    modifier = Modifier
+                        .padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
+                        .height(48.dp)
+                        .fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium,
                     textColor = colorItems.selectedColor()
                 )
             }
@@ -295,8 +308,8 @@ fun CreateListEditor(
                     items(colorItems) {
                         PgIconButton(
                             onClick = { onSelectColor(it) },
-                            modifier = Modifier.size(54.dp),
-                            color = Color.Transparent,
+                            modifier = Modifier.size(44.dp),
+                            variant = PgIconButtonVariant.Ghost,
                         ) {
                             Box(
                                 Modifier
@@ -304,14 +317,14 @@ fun CreateListEditor(
                                         color = it.color,
                                         shape = CircleShape
                                     )
-                                    .size(32.dp),
+                                    .size(24.dp),
                                 contentAlignment = Alignment.Center
                             ) {
                                 if (it.applied) {
                                     Box(
                                         Modifier
                                             .background(color = Color.White, shape = CircleShape)
-                                            .size(16.dp)
+                                            .size(10.dp)
                                     )
                                 }
                             }

@@ -14,8 +14,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.Divider
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -27,12 +25,18 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.wisnu.kurniawan.composetodolist.foundation.theme.AlphaDisabled
 import com.wisnu.kurniawan.composetodolist.foundation.theme.AlphaHigh
 import com.wisnu.kurniawan.composetodolist.foundation.theme.AlphaMedium
-import com.wisnu.kurniawan.composetodolist.foundation.theme.DividerAlpha
+import com.wisnu.kurniawan.composetodolist.foundation.theme.CardMinHeight
+import com.wisnu.kurniawan.composetodolist.foundation.theme.Space2
+import com.wisnu.kurniawan.composetodolist.foundation.theme.Space12
+import com.wisnu.kurniawan.composetodolist.foundation.theme.Space16
+import com.wisnu.kurniawan.composetodolist.foundation.theme.Space4
+import com.wisnu.kurniawan.composetodolist.foundation.theme.Space8
 
 @Composable
 fun PgModalCell(
@@ -64,8 +68,8 @@ fun PgModalCell(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp)
-            .height(56.dp)
+            .padding(horizontal = Space12)
+            .height(CardMinHeight)
             .clip(shape)
             .clickable(
                 onClick = onClickState,
@@ -74,32 +78,29 @@ fun PgModalCell(
             ),
         shape = shape,
         color = color.copy(alpha = colorAlpha),
+        tonalElevation = 1.dp
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Space12),
         ) {
             if (leftIcon != null) {
-                Spacer(Modifier.width(8.dp))
+                Spacer(Modifier.width(Space8))
                 leftIcon()
-                Spacer(Modifier.width(16.dp))
             } else {
-                Spacer(Modifier.width(20.dp))
+                Spacer(Modifier.width(Space16))
             }
 
             Text(
                 text = text,
-                style = MaterialTheme.typography.titleSmall,
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.weight(1f),
                 color = textColor
             )
 
             if (rightIcon != null) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
-                ) {
-                    rightIcon()
-                    Spacer(Modifier.size(20.dp))
-                }
+                rightIcon()
+                Spacer(Modifier.size(Space12))
             }
         }
     }
@@ -116,54 +117,77 @@ fun PgToDoItemCell(
     textDecoration: TextDecoration?,
     onClick: () -> Unit,
     onSwipeToDelete: () -> Unit,
-    onStatusClick: () -> Unit
+    onStatusClick: () -> Unit,
+    undoEnabled: Boolean = true,
+    onRequestDelete: (() -> Unit)? = null,
 ) {
+    val isCompleted = textDecoration == TextDecoration.LineThrough
+
     SwipeDismiss(
         modifier = modifier,
         backgroundModifier = Modifier
             .background(MaterialTheme.colorScheme.secondary),
+        undoEnabled = undoEnabled,
+        onRequestDismiss = if (onRequestDelete == null) {
+            null
+        } else {
+            {
+                onRequestDelete()
+                false
+            }
+        },
         content = {
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .padding(horizontal = Space2, vertical = 2.dp)
                     .clickable(onClick = onClick),
+                shape = MaterialTheme.shapes.medium,
+                color = if (isCompleted) {
+                    MaterialTheme.colorScheme.secondary.copy(alpha = 0.8f)
+                } else {
+                    MaterialTheme.colorScheme.surface
+                },
+                tonalElevation = if (isCompleted) 0.dp else 2.dp
             ) {
-                Column {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(contentPaddingValues)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Space8),
+                    modifier = Modifier.padding(contentPaddingValues)
+                ) {
+                    PgIconButton(
+                        modifier = Modifier.size(28.dp),
+                        onClick = onStatusClick,
+                        variant = PgIconButtonVariant.Ghost,
+                        enforceMinSize = false
                     ) {
-                        PgIconButton(
-                            onClick = onStatusClick,
-                            color = Color.Transparent
-                        ) {
-                            PgIcon(
-                                imageVector = leftIcon,
-                                tint = color
-                            )
-                        }
-
-                        Column {
-                            Text(
-                                text = name,
-                                style = MaterialTheme.typography.titleSmall.copy(textDecoration = textDecoration),
-                            )
-
-                            if (info != null) {
-                                Spacer(Modifier.height(4.dp))
-                                Text(
-                                    text = info,
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = AlphaMedium)
-                                )
-                            }
-                        }
+                        PgIcon(
+                            imageVector = leftIcon,
+                            tint = color
+                        )
                     }
 
-                    HorizontalDivider(
-                        modifier = Modifier.padding(start = 56.dp),
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = DividerAlpha)
-                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = name,
+                            style = MaterialTheme.typography.titleSmall.copy(
+                                textDecoration = textDecoration,
+                                fontWeight = if (isCompleted) FontWeight.Normal else FontWeight.Medium
+                            ),
+                            color = MaterialTheme.colorScheme.onSurface.copy(
+                                alpha = if (isCompleted) AlphaMedium else AlphaHigh
+                            )
+                        )
+
+                        if (info != null) {
+                            Spacer(Modifier.height(Space4))
+                            Text(
+                                text = info,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = AlphaMedium)
+                            )
+                        }
+                    }
                 }
             }
         },

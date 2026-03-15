@@ -13,7 +13,6 @@ import com.wisnu.kurniawan.composetodolist.features.todo.step.ui.RenameTaskScree
 import com.wisnu.kurniawan.composetodolist.features.todo.step.ui.RepeatSelectionScreen
 import com.wisnu.kurniawan.composetodolist.features.todo.step.ui.StepScreen
 import com.wisnu.kurniawan.composetodolist.features.todo.step.ui.StepViewModel
-import com.wisnu.kurniawan.composetodolist.features.todo.step.ui.UpdateTaskNoteScreen
 
 fun NavGraphBuilder.StepNavHost(
     navController: NavHostController,
@@ -36,8 +35,7 @@ fun NavGraphBuilder.StepNavHost(
                 onClickCreateStep = { navController.navigate(StepFlow.CreateStep.route) },
                 onClickStep = { navController.navigate(StepFlow.EditStep.route(it)) },
                 onClickTaskDelete = { navController.navigateUp() },
-                onClickRepeatItem = { navController.navigate(StepFlow.SelectRepeatTask.route) },
-                onClickUpdateNote = { navController.navigate(StepFlow.UpdateTaskNote.route) }
+                onClickRepeatItem = { navController.navigate(StepFlow.SelectRepeatTask.route) }
             )
         }
         bottomSheet(StepFlow.CreateStep.route) {
@@ -102,21 +100,6 @@ fun NavGraphBuilder.StepNavHost(
             RepeatSelectionScreen(
                 viewModel = viewModel,
                 onItemClick = { navController.navigateUp() }
-            )
-        }
-        bottomSheet(StepFlow.UpdateTaskNote.route) {
-            val viewModel = if (navController.previousBackStackEntry != null) {
-                hiltViewModel<StepViewModel>(
-                    navController.previousBackStackEntry!!
-                )
-            } else {
-                hiltViewModel()
-            }
-            bottomSheetConfig.value = DefaultMainBottomSheetConfig
-
-            UpdateTaskNoteScreen(
-                viewModel = viewModel,
-                onClickBack = { navController.navigateUp() }
             )
         }
     }

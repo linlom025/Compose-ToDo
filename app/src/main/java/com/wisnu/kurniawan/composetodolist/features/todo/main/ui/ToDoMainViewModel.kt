@@ -1,160 +1,212 @@
 package com.wisnu.kurniawan.composetodolist.features.todo.main.ui
 
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.viewModelScope
 import com.wisnu.foundation.coreviewmodel.StatefulViewModel
 import com.wisnu.kurniawan.composetodolist.features.todo.main.data.IToDoMainEnvironment
-import com.wisnu.kurniawan.composetodolist.foundation.datasource.local.model.ToDoGroupDb
-import com.wisnu.kurniawan.composetodolist.foundation.theme.MediumRadius
-import com.wisnu.kurniawan.composetodolist.model.ToDoGroup
-import com.wisnu.kurniawan.composetodolist.model.ToDoList
-import com.wisnu.kurniawan.composetodolist.model.ToDoStatus
-import com.wisnu.kurniawan.composetodolist.runtime.navigation.ARG_LIST_ID
-import com.wisnu.kurniawan.composetodolist.runtime.navigation.AllFlow
-import com.wisnu.kurniawan.composetodolist.runtime.navigation.ListDetailFlow
-import com.wisnu.kurniawan.composetodolist.runtime.navigation.MainFlow
-import com.wisnu.kurniawan.composetodolist.runtime.navigation.ScheduledFlow
-import com.wisnu.kurniawan.composetodolist.runtime.navigation.ScheduledTodayFlow
+import com.wisnu.kurniawan.composetodolist.model.TaskQuadrant
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
+import java.time.LocalDateTime
 import javax.inject.Inject
 
 @HiltViewModel
-class ToDoMainViewModel @Inject constructor(todoMainEnvironment: IToDoMainEnvironment) :
-    StatefulViewModel<ToDoMainState, Unit, ToDoMainAction, IToDoMainEnvironment>(ToDoMainState(), todoMainEnvironment) {
+class ToDoMainViewModel @Inject constructor(
+    todoMainEnvironment: IToDoMainEnvironment
+) : StatefulViewModel<ToDoMainState, Unit, ToDoMainAction, IToDoMainEnvironment>(ToDoMainState(), todoMainEnvironment) {
 
     init {
-        initToDo()
-        initOverallCount()
+        initQuadrants()
     }
 
     override fun dispatch(action: ToDoMainAction) {
         when (action) {
-            is ToDoMainAction.DeleteList -> {
+            ToDoMainAction.ToggleShowCompleted -> {
                 viewModelScope.launch {
-                    environment.deleteList(action.itemListType.list)
+                    setState { copy(showCompleted = !showCompleted) }
                 }
             }
-            is ToDoMainAction.NavBackStackEntryChanged -> {
-                viewModelScope.launch {
-                    when (action.route) {
-                        ListDetailFlow.ListDetailScreen.route -> {
-                            val listId = action.arguments?.getString(ARG_LIST_ID)
-                            if (listId.isNullOrBlank()) {
-                                setState { copy(selectedItemState = SelectedItemState.Empty) }
-                            } else {
-                                setState { copy(selectedItemState = SelectedItemState.List(listId)) }
-                            }
-                        }
-                        AllFlow.AllScreen.route -> {
-                            setState { copy(selectedItemState = SelectedItemState.AllTask) }
-                        }
-                        ScheduledTodayFlow.ScheduledTodayScreen.route -> {
-                            setState { copy(selectedItemState = SelectedItemState.ScheduledTodayTask) }
-                        }
-                        ScheduledFlow.ScheduledScreen.route -> {
-                            setState { copy(selectedItemState = SelectedItemState.ScheduledTask) }
-                        }
-                        MainFlow.RootEmpty.route -> {
-                            setState { copy(selectedItemState = SelectedItemState.Empty) }
-                        }
-                    }
-                }
-            }
-        }
-    }
 
-    private fun initToDo() {
-        viewModelScope.launch {
-            environment.getGroup()
-                .collect {
+            is ToDoMainAction.OpenCreateDialog -> {
+                viewModelScope.launch {
+                    val now = environment.dateTimeProvider.now()
                     setState {
                         copy(
-                            data = it,
-                            currentDate = environment.dateTimeProvider.now().dayOfMonth.toString()
+                            isCreateDialogVisible = true,
+                            createQuadrant = action.quadrant,
+                            createTaskName = TextFieldValue(),
+                            createDueEnabled = false,
+                            createDueDate = now.toLocalDate(),
+                            createDueTime = now.toLocalTime().withSecond(0).withNano(0),
+                            createNote = TextFieldValue(),
+                            showCreateDueDatePicker = false,
+                            showCreateDueTimePicker = false
                         )
                     }
                 }
-        }
-    }
+            }
 
-    private fun initOverallCount() {
-        viewModelScope.launch {
-            environment.getOverallCount()
-                .collect {
+            is ToDoMainAction.ChangeCreateTaskName -> {
+                viewModelScope.launch {
+                    setState { copy(createTaskName = action.value) }
+                }
+            }
+
+            is ToDoMainAction.ChangeCreateDueEnabled -> {
+                viewModelScope.launch {
+                    setState { copy(createDueEnabled = action.enabled) }
+                }
+            }
+
+            ToDoMainAction.OpenCreateDueDatePicker -> {
+                viewModelScope.launch {
+                    setState { copy(showCreateDueDatePicker = true) }
+                }
+            }
+
+            ToDoMainAction.DismissCreateDueDatePicker -> {
+                viewModelScope.launch {
+                    setState { copy(showCreateDueDatePicker = false) }
+                }
+            }
+
+            is ToDoMainAction.SelectCreateDueDate -> {
+                viewModelScope.launch {
+                    action.date ?: return@launch
                     setState {
                         copy(
-                            allTaskCount = it.allTaskCount.toString(),
-                            scheduledTodayTaskCount = it.scheduledTodayTaskCount.toString(),
-                            scheduledTaskCount = it.scheduledTaskCount.toString(),
+                            createDueDate = action.date,
+                            showCreateDueDatePicker = false,
+                            createDueEnabled = true
                         )
                     }
                 }
+            }
+
+            ToDoMainAction.OpenCreateDueTimePicker -> {
+                viewModelScope.launch {
+                    setState { copy(showCreateDueTimePicker = true) }
+                }
+            }
+
+            ToDoMainAction.DismissCreateDueTimePicker -> {
+                viewModelScope.launch {
+                    setState { copy(showCreateDueTimePicker = false) }
+                }
+            }
+
+            is ToDoMainAction.SelectCreateDueTime -> {
+                viewModelScope.launch {
+                    setState {
+                        copy(
+                            createDueTime = action.time,
+                            showCreateDueTimePicker = false,
+                            createDueEnabled = true
+                        )
+                    }
+                }
+            }
+
+            is ToDoMainAction.ChangeCreateNote -> {
+                viewModelScope.launch {
+                    setState { copy(createNote = action.value) }
+                }
+            }
+
+            ToDoMainAction.ConfirmCreate -> {
+                viewModelScope.launch {
+                    val taskName = state.value.createTaskName.text.trim()
+                    if (taskName.isBlank()) return@launch
+                    val note = state.value.createNote.text.trim()
+                    val dueDate = if (state.value.createDueEnabled) {
+                        LocalDateTime.of(state.value.createDueDate, state.value.createDueTime)
+                    } else {
+                        null
+                    }
+
+                    environment.createTaskInQuadrant(
+                        taskName = taskName,
+                        quadrant = state.value.createQuadrant,
+                        dueDate = dueDate,
+                        isDueDateTimeSet = state.value.createDueEnabled,
+                        note = note
+                    )
+
+                    resetCreateDialogState()
+                }
+            }
+
+            ToDoMainAction.DismissCreateDialog -> {
+                resetCreateDialogState()
+            }
+
+            is ToDoMainAction.ToggleTaskStatus -> {
+                viewModelScope.launch {
+                    environment.toggleTaskStatus(action.task)
+                }
+            }
+
+            is ToDoMainAction.RequestDeleteTask -> {
+                viewModelScope.launch {
+                    setState {
+                        copy(
+                            pendingDeleteTask = action.task,
+                            showDeleteTaskConfirmDialog = true
+                        )
+                    }
+                }
+            }
+
+            ToDoMainAction.ConfirmDeleteTask -> {
+                viewModelScope.launch {
+                    state.value.pendingDeleteTask?.let { task ->
+                        environment.deleteTask(task)
+                    }
+                    setState {
+                        copy(
+                            pendingDeleteTask = null,
+                            showDeleteTaskConfirmDialog = false
+                        )
+                    }
+                }
+            }
+
+            ToDoMainAction.DismissDeleteTask -> {
+                viewModelScope.launch {
+                    setState {
+                        copy(
+                            pendingDeleteTask = null,
+                            showDeleteTaskConfirmDialog = false
+                        )
+                    }
+                }
+            }
         }
     }
 
-}
-
-fun ItemMainState.ItemListType.cellShape() = when (this) {
-    is ItemMainState.ItemListType.First -> {
-        RoundedCornerShape(
-            topStart = MediumRadius,
-            topEnd = MediumRadius
-        )
-    }
-    is ItemMainState.ItemListType.Last -> {
-        RoundedCornerShape(
-            bottomStart = MediumRadius,
-            bottomEnd = MediumRadius
-        )
-    }
-    is ItemMainState.ItemListType.Middle -> {
-        RectangleShape
-    }
-    is ItemMainState.ItemListType.Single -> {
-        RoundedCornerShape(size = MediumRadius)
-    }
-}
-
-fun List<ToDoGroup>.toItemGroup(selectedItemState: SelectedItemState): List<ItemMainState> {
-    val data = mutableListOf<ItemMainState>()
-
-    forEach {
-        if (it.id != ToDoGroupDb.DEFAULT_ID) {
-            data.add(ItemMainState.ItemGroup(it))
+    private fun initQuadrants() {
+        viewModelScope.launch {
+            environment.ensureQuadrantSystemLists()
+            environment.migrateUncompletedTaskListIdToQuadrantList()
+            environment.loadQuadrantTasks().collect { tasks ->
+                setState { copy(tasks = tasks) }
+            }
         }
-        data.addAll(it.lists.toItemListMainState(selectedItemState))
     }
 
-    return data
-}
-
-private fun List<ToDoList>.toItemListMainState(selectedItemState: SelectedItemState): List<ItemMainState.ItemListType> {
-    return mapIndexed { index, list ->
-        val selected = selectedItemState is SelectedItemState.List && selectedItemState.listId == list.id
-        if (size == 1) {
-            ItemMainState.ItemListType.Single(
-                list = list,
-                selected = selected
-            )
-        } else {
-            when (index) {
-                0 -> ItemMainState.ItemListType.First(
-                    list = list,
-                    selected = selected
-                )
-                lastIndex -> ItemMainState.ItemListType.Last(
-                    list = list,
-                    selected = selected
-                )
-                else -> ItemMainState.ItemListType.Middle(
-                    list = list,
-                    selected = selected
+    private fun resetCreateDialogState() {
+        viewModelScope.launch {
+            setState {
+                copy(
+                    isCreateDialogVisible = false,
+                    createQuadrant = TaskQuadrant.fromDbDefault(),
+                    createTaskName = TextFieldValue(),
+                    createDueEnabled = false,
+                    createNote = TextFieldValue(),
+                    showCreateDueDatePicker = false,
+                    showCreateDueTimePicker = false
                 )
             }
         }
     }
 }
-
-fun ToDoList.totalTask() = tasks.filter { it.status == ToDoStatus.IN_PROGRESS }.size

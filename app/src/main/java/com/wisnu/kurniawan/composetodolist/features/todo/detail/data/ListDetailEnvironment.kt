@@ -11,6 +11,7 @@ import com.wisnu.kurniawan.composetodolist.foundation.extension.resolveListName
 import com.wisnu.kurniawan.composetodolist.foundation.extension.toggleStatusHandler
 import com.wisnu.kurniawan.composetodolist.foundation.wrapper.DateTimeProvider
 import com.wisnu.kurniawan.composetodolist.foundation.wrapper.IdProvider
+import com.wisnu.kurniawan.composetodolist.model.TaskQuadrant
 import com.wisnu.kurniawan.composetodolist.model.ToDoList
 import com.wisnu.kurniawan.composetodolist.model.ToDoTask
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -60,7 +61,7 @@ class ListDetailEnvironment @Inject constructor(
         )
     }
 
-    override suspend fun createTask(taskName: String, listId: String) {
+    override suspend fun createTask(taskName: String, listId: String, quadrant: TaskQuadrant) {
         val currentDate = dateTimeProvider.now()
 
         toDoTaskProvider.insertTask(
@@ -68,6 +69,7 @@ class ListDetailEnvironment @Inject constructor(
                 ToDoTask(
                     id = idProvider.generate(),
                     name = taskName,
+                    quadrant = quadrant,
                     createdAt = currentDate,
                     updatedAt = currentDate
                 )

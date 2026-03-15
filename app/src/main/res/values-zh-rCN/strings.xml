@@ -1,0 +1,108 @@
+<resources>
+    <string name="app_name" translatable="false">ll-todo</string>
+
+    <string name="login_login">登录</string>
+    <string name="login_email">邮箱</string>
+    <string name="login_email_invalid">邮箱格式不正确</string>
+    <string name="login_password">密码</string>
+
+    <string name="setting_title">主菜单</string>
+    <string name="setting_theme">主题</string>
+    <string name="setting_theme_automatic">自动</string>
+    <string name="setting_theme_wallpaper" translatable="false">壁纸</string>
+    <string name="setting_theme_light">白天</string>
+    <string name="setting_theme_twilight">黄昏</string>
+    <string name="setting_theme_night">深夜</string>
+    <string name="setting_theme_sunrise">日出</string>
+    <string name="setting_theme_aurora">极光</string>
+    <string name="setting_logout">退出登录</string>
+    <string name="setting_logout_confirm">确认退出登录？</string>
+    <string name="setting_language">语言</string>
+    <string name="setting_language_english" translatable="false">英语</string>
+    <string name="setting_language_indonesia" translatable="false">印尼语</string>
+    <string name="setting_language_chinese" translatable="false">简体中文</string>
+
+    <string name="todo_done">完成</string>
+    <string name="todo_today">今天</string>
+    <string name="todo_scheduled">计划中</string>
+    <string name="todo_all">全部</string>
+    <string name="todo_rename">重命名</string>
+    <string name="todo_skip">跳过</string>
+    <string name="todo_add">添加</string>
+    <string name="todo_note">备注</string>
+    <string name="todo_add_note">添加备注</string>
+    <string name="todo_new_list">新建列表</string>
+    <string name="todo_my_list">我的列表</string>
+    <string name="todo_no_list">暂无列表</string>
+    <string name="todo_no_task">暂无任务</string>
+    <string name="todo_cancel">取消</string>
+    <string name="todo_group_default_name">未命名分组</string>
+    <string name="todo_group_menu">分组菜单</string>
+    <string name="todo_group_menu_add_remove_list">添加/移除列表</string>
+    <string name="todo_group_menu_rename">重命名分组</string>
+    <string name="todo_group_menu_delete">删除分组</string>
+    <string name="todo_group_menu_ungroup">取消分组</string>
+    <string name="todo_create_group">创建分组</string>
+    <string name="todo_create_group_hint">输入分组名称</string>
+    <string name="todo_create_group_positive">创建分组</string>
+    <string name="todo_create_list_default_name">未命名列表</string>
+    <string name="todo_create_list">新建列表</string>
+    <string name="todo_create_list_hint">输入列表标题</string>
+    <string name="todo_create_list_positive">创建列表</string>
+    <string name="todo_rename_list">重命名列表</string>
+    <string name="todo_rename_list_positive">保存</string>
+    <string name="todo_add_task">添加任务</string>
+    <string name="todo_rename_task">重命名任务</string>
+    <string name="todo_add_task_completed">已完成</string>
+    <string name="todo_update_group_list">将列表添加到分组</string>
+    <string name="todo_step_rename">重命名步骤</string>
+    <string name="todo_step_next">下一步</string>
+    <string name="todo_add_due_date_task">添加截止日期</string>
+    <string name="todo_add_due_date_time_task">时间</string>
+    <string name="todo_add_due_date_repeat_task">重复</string>
+    <string name="todo_repeat_never">从不</string>
+    <string name="todo_repeat_daily">每天</string>
+    <string name="todo_repeat_weekdays">工作日</string>
+    <string name="todo_repeat_weekly">每周</string>
+    <string name="todo_repeat_monthly">每月</string>
+    <string name="todo_repeat_yearly">每年</string>
+
+    <string name="todo_task_item_info">%1$s / %2$s</string>
+    <string name="todo_task_in_progress_date_creation_second">刚刚创建</string>
+    <string name="todo_task_in_progress_date_creation_minute">%1$s 分钟前创建</string>
+    <string name="todo_task_in_progress_date_creation_hour">%1$s 小时前创建</string>
+    <string name="todo_task_in_progress_date_creation_yesterday">昨天创建</string>
+    <string name="todo_task_in_progress_date_creation_date">创建于 %1$s</string>
+    <string name="todo_task_complete_date_today">今天已完成</string>
+    <string name="todo_task_complete_date_yesterday">昨天已完成</string>
+    <string name="todo_task_complete_date">完成于 %1$s</string>
+    <string name="todo_task_note_update_second">刚刚更新</string>
+    <string name="todo_task_note_update_minute">%1$s 分钟前更新</string>
+    <string name="todo_task_note_update_hour">%1$s 小时前更新</string>
+    <string name="todo_task_note_update_yesterday">昨天更新</string>
+    <string name="todo_task_note_update_date">更新于 %1$s</string>
+
+    <string name="todo_task_today">今天</string>
+    <string name="todo_task_tomorrow">明天</string>
+    <string name="todo_task_yesterday">昨天</string>
+    <string name="todo_task_due_date_today">今天到期</string>
+    <string name="todo_task_due_date_tomorrow">明天到期</string>
+    <string name="todo_task_due_date_yesterday">昨天到期</string>
+    <string name="todo_task_due_date">%1$s 到期</string>
+
+    <string name="todo_task_channel_name">任务提醒</string>
+    <string name="todo_task_channel_description">任务提醒通知</string>
+    <string name="todo_task_notification_action_snooze">15 分钟后提醒</string>
+
+    <string name="todo_search">搜索任务</string>
+
+    <string name="todo_show_complete">显示已完成任务</string>
+    <string name="todo_hide_complete">隐藏已完成任务</string>
+    <string name="todo_calendar_title">日历</string>
+    <string name="todo_calendar_no_task_on_day">当天暂无任务</string>
+    <string name="todo_delete_confirm_title">删除任务</string>
+    <string name="todo_delete_confirm_message">确认删除这个任务吗？</string>
+    <string name="todo_delete_confirm_action">删除</string>
+
+    <string name="todo_select_time">选择时间</string>
+</resources>

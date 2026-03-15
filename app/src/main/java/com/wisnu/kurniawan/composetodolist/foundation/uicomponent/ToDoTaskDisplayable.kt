@@ -6,7 +6,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
-import com.wisnu.foundation.coredatetime.formatDateTime
 import com.wisnu.foundation.coredatetime.isSameDay
 import com.wisnu.foundation.coredatetime.isSameHour
 import com.wisnu.foundation.coredatetime.isSameMinute
@@ -17,6 +16,9 @@ import com.wisnu.kurniawan.composetodolist.foundation.extension.displayable
 import com.wisnu.kurniawan.composetodolist.foundation.extension.ellipsisAt
 import com.wisnu.kurniawan.composetodolist.foundation.extension.isExpired
 import com.wisnu.kurniawan.composetodolist.foundation.extension.joinToString
+import com.wisnu.kurniawan.composetodolist.foundation.extension.toDisplayableDate
+import com.wisnu.kurniawan.composetodolist.foundation.extension.toDisplayableDateTime
+import com.wisnu.kurniawan.composetodolist.foundation.extension.toDisplayableTime
 import com.wisnu.kurniawan.composetodolist.foundation.wrapper.DateTimeProviderImpl
 import com.wisnu.kurniawan.composetodolist.model.ToDoRepeat
 import com.wisnu.kurniawan.composetodolist.model.ToDoStatus
@@ -43,7 +45,7 @@ fun ToDoTask.itemInfoDisplayable(resources: Resources, expiredColor: Color, list
         if (it == 1 && noteInfo.isNotBlank()) {
             "\n"
         } else {
-            "・"
+            " | "
         }
     }
 
@@ -70,7 +72,7 @@ fun ToDoTask.dueDateDisplayable(resources: Resources, currentDate: LocalDateTime
             dueDate.isSameDay(currentDate) -> resources.getString(R.string.todo_task_due_date_today)
             dueDate.isTomorrow(currentDate) -> resources.getString(R.string.todo_task_due_date_tomorrow)
             dueDate.isYesterday(currentDate) -> resources.getString(R.string.todo_task_due_date_yesterday)
-            else -> resources.getString(R.string.todo_task_due_date, dueDate.formatDateTime())
+            else -> resources.getString(R.string.todo_task_due_date, dueDate.toLocalDate().toDisplayableDate())
         }
     } else {
         null
@@ -78,18 +80,17 @@ fun ToDoTask.dueDateDisplayable(resources: Resources, currentDate: LocalDateTime
 }
 
 fun LocalDate.headerDateDisplayable(resources: Resources, currentDate: LocalDateTime = DateTimeProviderImpl().now()): String {
-    val date = LocalDateTime.of(this, LocalTime.MIN)
     return when {
-        date.isSameDay(currentDate) -> resources.getString(R.string.todo_task_today)
-        date.isTomorrow(currentDate) -> resources.getString(R.string.todo_task_tomorrow)
-        date.isYesterday(currentDate) -> resources.getString(R.string.todo_task_yesterday)
-        else -> date.formatDateTime()
+        LocalDateTime.of(this, LocalTime.MIN).isSameDay(currentDate) -> resources.getString(R.string.todo_task_today)
+        LocalDateTime.of(this, LocalTime.MIN).isTomorrow(currentDate) -> resources.getString(R.string.todo_task_tomorrow)
+        LocalDateTime.of(this, LocalTime.MIN).isYesterday(currentDate) -> resources.getString(R.string.todo_task_yesterday)
+        else -> this.toDisplayableDate()
     }
 }
 
 fun ToDoTask.timeDisplayable(): String? {
     return if (isDueDateTimeSet) {
-        dueDate?.toLocalTime().toString()
+        dueDate?.toLocalTime()?.toDisplayableTime()
     } else {
         null
     }
@@ -115,8 +116,8 @@ fun ToDoTask.dateTimeDisplayable(currentDate: LocalDateTime = DateTimeProviderIm
                         }
                     }
                 }
-                createdAt.isYesterday(currentDate) -> stringResource(R.string.todo_task_in_progress_date_creation_date, createdAt.formatDateTime())
-                else -> stringResource(R.string.todo_task_in_progress_date_creation_yesterday)
+                createdAt.isYesterday(currentDate) -> stringResource(R.string.todo_task_in_progress_date_creation_yesterday)
+                else -> stringResource(R.string.todo_task_in_progress_date_creation_date, createdAt.toDisplayableDateTime())
             }
         }
         ToDoStatus.COMPLETE -> {
@@ -124,7 +125,7 @@ fun ToDoTask.dateTimeDisplayable(currentDate: LocalDateTime = DateTimeProviderIm
                 completedAt == null -> ""
                 completedAt.isSameDay(currentDate) -> stringResource(R.string.todo_task_complete_date_today)
                 completedAt.isYesterday(currentDate) -> stringResource(R.string.todo_task_complete_date_yesterday)
-                else -> stringResource(R.string.todo_task_complete_date, completedAt.formatDateTime())
+                else -> stringResource(R.string.todo_task_complete_date, completedAt.toDisplayableDateTime())
             }
         }
     }
@@ -149,8 +150,8 @@ fun ToDoTask.noteUpdatedAtDisplayable(currentDate: LocalDateTime = DateTimeProvi
                 }
             }
         }
-        noteUpdatedAt.isYesterday(currentDate) -> stringResource(R.string.todo_task_note_update_yesterday, createdAt.formatDateTime())
-        else -> stringResource(R.string.todo_task_note_update_date, noteUpdatedAt.formatDateTime())
+        noteUpdatedAt.isYesterday(currentDate) -> stringResource(R.string.todo_task_note_update_yesterday)
+        else -> stringResource(R.string.todo_task_note_update_date, noteUpdatedAt.toDisplayableDateTime())
     }
 }
 

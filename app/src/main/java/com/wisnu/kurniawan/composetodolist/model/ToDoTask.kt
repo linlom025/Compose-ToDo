@@ -6,6 +6,7 @@ data class ToDoTask(
     val id: String = "",
     val name: String = "",
     val status: ToDoStatus = ToDoStatus.IN_PROGRESS,
+    val quadrant: TaskQuadrant = TaskQuadrant.fromDbDefault(),
     val steps: List<ToDoStep> = listOf(),
     val completedAt: LocalDateTime? = null,
     val dueDate: LocalDateTime? = null,

@@ -1,474 +1,468 @@
 package com.wisnu.kurniawan.composetodolist.features.todo.main.ui
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.List
-import androidx.compose.material.icons.rounded.CalendarToday
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Event
-import androidx.compose.material.icons.rounded.Inbox
-import androidx.compose.material.icons.rounded.List
-import androidx.compose.material.icons.rounded.MoreHoriz
-import androidx.compose.material3.Divider
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material.icons.rounded.RadioButtonUnchecked
+import androidx.compose.material.icons.rounded.Schedule
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import com.wisnu.kurniawan.composetodolist.R
-import com.wisnu.kurniawan.composetodolist.foundation.extension.identifier
-import com.wisnu.kurniawan.composetodolist.foundation.extension.toColor
-import com.wisnu.kurniawan.composetodolist.foundation.theme.AlphaDisabled
-import com.wisnu.kurniawan.composetodolist.foundation.theme.AlphaHigh
-import com.wisnu.kurniawan.composetodolist.foundation.theme.CommonGrey
-import com.wisnu.kurniawan.composetodolist.foundation.theme.DividerAlpha
+import com.wisnu.kurniawan.composetodolist.features.todo.main.data.QuadrantTask
+import com.wisnu.kurniawan.composetodolist.foundation.extension.toDisplayableDate
+import com.wisnu.kurniawan.composetodolist.foundation.extension.toDisplayableDateCompact
+import com.wisnu.kurniawan.composetodolist.foundation.extension.toDisplayableTime
 import com.wisnu.kurniawan.composetodolist.foundation.theme.ListBlue
+import com.wisnu.kurniawan.composetodolist.foundation.theme.ListGreen
+import com.wisnu.kurniawan.composetodolist.foundation.theme.ListOrange
 import com.wisnu.kurniawan.composetodolist.foundation.theme.ListRed
-import com.wisnu.kurniawan.composetodolist.foundation.theme.MediumRadius
+import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.PgButton
+import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.PgConfirmDeleteDialog
 import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.PgEmpty
 import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.PgIcon
 import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.PgIconButton
-import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.SwipeDismiss
+import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.PgIconButtonSize
+import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.PgIconButtonVariant
+import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.PgSecondaryButton
+import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.PgDatePickerDialog
+import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.PgTimePickerDialog
+import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.PgToDoItemCell
+import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.itemInfoDisplayable
+import com.wisnu.kurniawan.composetodolist.model.TaskQuadrant
+import com.wisnu.kurniawan.composetodolist.model.ToDoStatus
+import com.wisnu.kurniawan.composetodolist.model.ToDoTask
+import java.time.LocalDate
+import java.time.LocalTime
 
 @Composable
 fun ToDoMainScreen(
-    data: List<ItemMainState>,
-    currentDate: String,
-    scheduledTodayTaskCount: String,
-    scheduledTaskCount: String,
-    allTaskCount: String,
-    isAllTaskSelected: Boolean,
-    isScheduledTodayTaskSelected: Boolean,
-    isScheduledTaskSelected: Boolean,
-    onClickGroup: (ItemMainState.ItemGroup) -> Unit,
-    onClickList: (ItemMainState.ItemListType) -> Unit,
-    onSwipeToDelete: (ItemMainState.ItemListType) -> Unit,
-    onClickScheduledTodayTask: () -> Unit,
-    onClickScheduledTask: () -> Unit,
-    onClickAllTask: () -> Unit,
+    state: ToDoMainState,
+    onOpenCreateDialog: (TaskQuadrant) -> Unit,
+    onCreateTaskNameChange: (TextFieldValue) -> Unit,
+    onCreateDueEnabledChange: (Boolean) -> Unit,
+    onOpenCreateDueDatePicker: () -> Unit,
+    onDismissCreateDueDatePicker: () -> Unit,
+    onSelectCreateDueDate: (LocalDate?) -> Unit,
+    onOpenCreateDueTimePicker: () -> Unit,
+    onDismissCreateDueTimePicker: () -> Unit,
+    onSelectCreateDueTime: (LocalTime) -> Unit,
+    onCreateNoteChange: (TextFieldValue) -> Unit,
+    onConfirmCreate: () -> Unit,
+    onDismissCreateDialog: () -> Unit,
+    onTaskClick: (QuadrantTask) -> Unit,
+    onTaskStatusClick: (ToDoTask) -> Unit,
+    onTaskSwipeToDelete: (ToDoTask) -> Unit,
+    onConfirmDeleteTask: () -> Unit,
+    onDismissDeleteTask: () -> Unit,
 ) {
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 0.dp, vertical = 4.dp)
     ) {
-        item {
-            Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 16.dp, end = 16.dp, bottom = 16.dp, top = 8.dp)
-            ) {
-                ScheduledTodayCell(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(end = 8.dp),
-                    onClick = onClickScheduledTodayTask,
-                    currentDate = currentDate,
-                    scheduledTaskCount = scheduledTodayTaskCount,
-                    isSelected = isScheduledTodayTaskSelected
-                )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            QuadrantCard(
+                modifier = Modifier.weight(1f),
+                quadrant = TaskQuadrant.Q1,
+                tasks = state.quadrants[TaskQuadrant.Q1].orEmpty(),
+                onOpenCreateDialog = onOpenCreateDialog,
+                onTaskClick = onTaskClick,
+                onTaskStatusClick = onTaskStatusClick,
+                onTaskSwipeToDelete = onTaskSwipeToDelete
+            )
 
-                ScheduledCell(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(start = 8.dp),
-                    onClick = onClickScheduledTask,
-                    scheduledTaskCount = scheduledTaskCount,
-                    isSelected = isScheduledTaskSelected
-                )
-            }
-        }
-
-        item {
-            AllTaskCell(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
-                onClick = onClickAllTask,
-                allTaskCount = allTaskCount,
-                isSelected = isAllTaskSelected
+            QuadrantCard(
+                modifier = Modifier.weight(1f),
+                quadrant = TaskQuadrant.Q2,
+                tasks = state.quadrants[TaskQuadrant.Q2].orEmpty(),
+                onOpenCreateDialog = onOpenCreateDialog,
+                onTaskClick = onTaskClick,
+                onTaskStatusClick = onTaskStatusClick,
+                onTaskSwipeToDelete = onTaskSwipeToDelete
             )
         }
 
-        item {
-            Text(
-                text = stringResource(R.string.todo_my_list),
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(start = 32.dp, bottom = 8.dp)
+        Spacer(Modifier.height(6.dp))
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            QuadrantCard(
+                modifier = Modifier.weight(1f),
+                quadrant = TaskQuadrant.Q3,
+                tasks = state.quadrants[TaskQuadrant.Q3].orEmpty(),
+                onOpenCreateDialog = onOpenCreateDialog,
+                onTaskClick = onTaskClick,
+                onTaskStatusClick = onTaskStatusClick,
+                onTaskSwipeToDelete = onTaskSwipeToDelete
+            )
+
+            QuadrantCard(
+                modifier = Modifier.weight(1f),
+                quadrant = TaskQuadrant.Q4,
+                tasks = state.quadrants[TaskQuadrant.Q4].orEmpty(),
+                onOpenCreateDialog = onOpenCreateDialog,
+                onTaskClick = onTaskClick,
+                onTaskStatusClick = onTaskStatusClick,
+                onTaskSwipeToDelete = onTaskSwipeToDelete
             )
         }
+    }
 
-        if (data.isEmpty()) {
-            item {
-                PgEmpty(
-                    stringResource(R.string.todo_no_list),
-                    modifier = Modifier
-                        .height(300.dp)
-                )
-            }
-        } else {
-            items(
-                items = data,
-                key = { item -> item.identifier() }
-            ) { item ->
-                when (item) {
-                    is ItemMainState.ItemGroup -> {
-                        GroupCell({ onClickGroup(item) }, item.group.name)
-                    }
-                    is ItemMainState.ItemListType -> {
-                        ListCell(
-                            shape = item.cellShape(),
-                            name = item.list.name,
-                            totalTask = item.list.totalTask().toString(),
-                            color = item.list.color.toColor(),
-                            shouldShowDivider = item is ItemMainState.ItemListType.First || item is ItemMainState.ItemListType.Middle,
-                            isSelected = item.selected,
-                            onClick = { onClickList(item) },
-                            onSwipeToDelete = { onSwipeToDelete(item) }
-                        )
+    if (state.isCreateDialogVisible) {
+        CreateTaskDialog(
+            state = state,
+            onNameChange = onCreateTaskNameChange,
+            onDueEnabledChange = onCreateDueEnabledChange,
+            onOpenDueDatePicker = onOpenCreateDueDatePicker,
+            onDismissDueDatePicker = onDismissCreateDueDatePicker,
+            onSelectDueDate = onSelectCreateDueDate,
+            onOpenDueTimePicker = onOpenCreateDueTimePicker,
+            onDismissDueTimePicker = onDismissCreateDueTimePicker,
+            onSelectDueTime = onSelectCreateDueTime,
+            onNoteChange = onCreateNoteChange,
+            onDismiss = onDismissCreateDialog,
+            onConfirm = onConfirmCreate
+        )
+    }
 
-                        if (item is ItemMainState.ItemListType.Single ||
-                            item is ItemMainState.ItemListType.Last
-                        ) {
-                            Spacer(Modifier.height(8.dp))
-                        }
-                    }
-                }
-            }
-        }
-
-        item {
-            Spacer(Modifier.height(56.dp))
-        }
+    if (state.showDeleteTaskConfirmDialog) {
+        PgConfirmDeleteDialog(
+            onConfirm = onConfirmDeleteTask,
+            onDismiss = onDismissDeleteTask
+        )
     }
 }
 
 @Composable
-private fun ScheduledTodayCell(
+private fun QuadrantCard(
     modifier: Modifier,
-    onClick: () -> Unit,
-    currentDate: String,
-    scheduledTaskCount: String,
-    isSelected: Boolean
+    quadrant: TaskQuadrant,
+    tasks: List<QuadrantTask>,
+    onOpenCreateDialog: (TaskQuadrant) -> Unit,
+    onTaskClick: (QuadrantTask) -> Unit,
+    onTaskStatusClick: (ToDoTask) -> Unit,
+    onTaskSwipeToDelete: (ToDoTask) -> Unit
 ) {
-    OverallTaskCell(
-        modifier = modifier,
-        taskCount = scheduledTaskCount,
-        title = stringResource(R.string.todo_today),
-        iconText = currentDate,
-        icon = Icons.Rounded.CalendarToday,
-        iconColor = ListRed,
-        onClick = onClick,
-        isSelected = isSelected
-    )
-}
+    val resources = LocalContext.current.resources
+    val titleColor = quadrant.toColor()
 
-@Composable
-private fun ScheduledCell(
-    modifier: Modifier,
-    onClick: () -> Unit,
-    scheduledTaskCount: String,
-    isSelected: Boolean
-) {
-    OverallTaskCell(
-        modifier = modifier,
-        taskCount = scheduledTaskCount,
-        title = stringResource(R.string.todo_scheduled),
-        icon = Icons.Rounded.Event,
-        iconColor = ListBlue,
-        onClick = onClick,
-        isSelected = isSelected
-    )
-}
-
-@Composable
-private fun AllTaskCell(
-    modifier: Modifier,
-    onClick: () -> Unit,
-    allTaskCount: String,
-    isSelected: Boolean
-) {
-    OverallTaskCell(
-        modifier = modifier,
-        taskCount = allTaskCount,
-        title = stringResource(R.string.todo_all),
-        icon = Icons.Rounded.Inbox,
-        iconColor = CommonGrey,
-        onClick = onClick,
-        isSelected = isSelected
-    )
-}
-
-@Composable
-private fun OverallTaskCell(
-    modifier: Modifier,
-    taskCount: String,
-    title: String,
-    icon: ImageVector,
-    iconColor: Color,
-    iconText: String = "",
-    onClick: () -> Unit,
-    isSelected: Boolean
-) {
-    val shape = RoundedCornerShape(size = MediumRadius)
     Surface(
-        modifier = modifier
-            .clip(shape)
-            .clickable(onClick = onClick),
-        shape = shape,
-        color = if (isSelected) {
-            iconColor
-        } else {
-            MaterialTheme.colorScheme.secondary
-        }
+        modifier = modifier.fillMaxSize(),
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 3.dp
     ) {
-        Column(
-            modifier = Modifier.padding(all = 16.dp)
-        ) {
+        Column(modifier = Modifier.padding(horizontal = 10.dp, vertical = 10.dp)) {
             Row(
+                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(28.dp)
-                        .background(
-                            shape = CircleShape,
-                            color = if (isSelected) {
-                                MaterialTheme.colorScheme.onSecondary
-                            } else {
-                                iconColor
-                            }
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    PgIcon(
-                        imageVector = icon,
-                        modifier = Modifier
-                            .size(20.dp),
-                        tint = if (isSelected) {
-                            iconColor
-                        } else {
-                            MaterialTheme.colorScheme.onSecondary
-                        }
-                    )
-
-                    if (iconText.isNotBlank()) {
-                        Text(
-                            text = iconText,
-                            fontSize = 8.sp,
-                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-                            modifier = Modifier.padding(top = 2.dp),
-                            color = if (isSelected) {
-                                iconColor
-                            } else {
-                                MaterialTheme.colorScheme.onSurface
-                            }
-                        )
-                    }
-                }
-
                 Text(
-                    text = taskCount,
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = MaterialTheme.colorScheme.onSurface
+                    text = quadrant.toTitle(),
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Medium),
+                    color = titleColor
                 )
+                TinyAddButton(onClick = { onOpenCreateDialog(quadrant) })
             }
 
             Spacer(Modifier.height(8.dp))
 
-            val alpha = if (isSelected) {
-                AlphaHigh
+            if (tasks.isEmpty()) {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    PgEmpty(
+                        text = stringResource(R.string.todo_no_task),
+                        modifier = Modifier.align(Alignment.Center)
+                    )
+                }
             } else {
-                AlphaDisabled
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(tasks, key = { it.task.id }) { item ->
+                        val task = item.task
+                        PgToDoItemCell(
+                            name = task.name,
+                            color = titleColor,
+                            contentPaddingValues = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
+                            leftIcon = if (task.status == ToDoStatus.COMPLETE) {
+                                Icons.Rounded.CheckCircle
+                            } else {
+                                Icons.Rounded.RadioButtonUnchecked
+                            },
+                            textDecoration = if (task.status == ToDoStatus.COMPLETE) {
+                                TextDecoration.LineThrough
+                            } else {
+                                TextDecoration.None
+                            },
+                            onClick = { onTaskClick(item) },
+                            onSwipeToDelete = { onTaskSwipeToDelete(task) },
+                            onStatusClick = { onTaskStatusClick(task) },
+                            info = task.itemInfoDisplayable(resources, MaterialTheme.colorScheme.error),
+                            undoEnabled = false,
+                            onRequestDelete = { onTaskSwipeToDelete(task) }
+                        )
+                    }
+                }
             }
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha)
-            )
         }
     }
 }
 
 @Composable
-private fun GroupCell(
-    onClickGroup: () -> Unit,
-    name: String
+private fun TinyAddButton(
+    onClick: () -> Unit
 ) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(32.dp)
-            .padding(horizontal = 16.dp),
-        color = Color.Transparent
+    PgIconButton(
+        onClick = onClick,
+        modifier = Modifier.size(20.dp),
+        size = PgIconButtonSize.Small,
+        enforceMinSize = false,
+        variant = PgIconButtonVariant.FilledSoft,
+        color = MaterialTheme.colorScheme.secondary
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = name,
-                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-                modifier = Modifier.padding(start = 16.dp)
-                    .weight(1f),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-
-            PgIconButton(
-                onClick = onClickGroup,
-                color = Color.Transparent,
-            ) {
-                PgIcon(
-                    imageVector = Icons.Rounded.MoreHoriz,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-        }
+        PgIcon(imageVector = Icons.Rounded.Add, modifier = Modifier.size(14.dp))
     }
 }
 
 @Composable
-private fun ListCell(
-    shape: Shape,
-    name: String,
-    totalTask: String,
-    color: Color,
-    shouldShowDivider: Boolean,
-    isSelected: Boolean,
-    onClick: () -> Unit,
-    onSwipeToDelete: () -> Unit,
+@OptIn(ExperimentalMaterial3Api::class)
+private fun CreateTaskDialog(
+    state: ToDoMainState,
+    onNameChange: (TextFieldValue) -> Unit,
+    onDueEnabledChange: (Boolean) -> Unit,
+    onOpenDueDatePicker: () -> Unit,
+    onDismissDueDatePicker: () -> Unit,
+    onSelectDueDate: (LocalDate?) -> Unit,
+    onOpenDueTimePicker: () -> Unit,
+    onDismissDueTimePicker: () -> Unit,
+    onSelectDueTime: (LocalTime) -> Unit,
+    onNoteChange: (TextFieldValue) -> Unit,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
 ) {
-    SwipeDismiss(
-        backgroundModifier = Modifier
-            .padding(horizontal = 16.dp)
-            .background(MaterialTheme.colorScheme.surfaceVariant, shape),
-        backgroundSecondaryModifier = Modifier.clip(shape),
-        content = {
-            Surface(
+    if (state.showCreateDueDatePicker) {
+        PgDatePickerDialog(
+            initialDate = state.createDueDate,
+            onDismiss = onDismissDueDatePicker,
+            onConfirm = { date ->
+                onSelectDueDate(date)
+            }
+        )
+    }
+
+    if (state.showCreateDueTimePicker) {
+        val timeState = androidx.compose.material3.rememberTimePickerState(
+            initialHour = state.createDueTime.hour,
+            initialMinute = state.createDueTime.minute,
+            is24Hour = true
+        )
+        PgTimePickerDialog(
+            onCancel = onDismissDueTimePicker,
+            onConfirm = { onSelectDueTime(LocalTime.of(timeState.hour, timeState.minute)) }
+        ) {
+            androidx.compose.material3.TimePicker(state = timeState)
+        }
+    }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = MaterialTheme.shapes.large,
+            tonalElevation = 6.dp,
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-                    .clip(shape)
-                    .clickable(onClick = onClick),
-                shape = shape,
-                color = if (isSelected) {
-                    MaterialTheme.colorScheme.primaryContainer
-                } else {
-                    MaterialTheme.colorScheme.secondary
-                }
+                    .padding(horizontal = 16.dp, vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Column {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.padding(all = 16.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(28.dp)
-                                .background(shape = CircleShape, color = color),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            PgIcon(
-                                imageVector = Icons.AutoMirrored.Rounded.List,
-                                modifier = Modifier
-                                    .size(20.dp)
-                            )
-                        }
-                        Spacer(Modifier.size(8.dp))
-                        Text(
-                            text = name,
-                            style = MaterialTheme.typography.titleSmall,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f),
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Spacer(Modifier.size(8.dp))
+                Text(
+                    text = state.createQuadrant.toTitle(),
+                    style = MaterialTheme.typography.titleSmall
+                )
 
+                OutlinedTextField(
+                    value = state.createTaskName,
+                    onValueChange = onNameChange,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .defaultMinSize(minHeight = 56.dp),
+                    maxLines = 2,
+                    singleLine = false,
+                    placeholder = { Text(text = stringResource(R.string.todo_add_task)) },
+                    shape = MaterialTheme.shapes.medium,
+                    textStyle = MaterialTheme.typography.bodyLarge,
+                    colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.secondary,
+                        focusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.22f)
+                    )
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = stringResource(R.string.todo_add_due_date_task),
+                        style = MaterialTheme.typography.titleSmall
+                    )
+                    Switch(
+                        checked = state.createDueEnabled,
+                        onCheckedChange = onDueEnabledChange
+                    )
+                }
+
+                if (state.createDueEnabled) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        CompactMetaButton(
+                            modifier = Modifier.weight(1f),
+                            icon = Icons.Rounded.Event,
+                            text = state.createDueDate.toDisplayableDateCompact(),
+                            onClick = onOpenDueDatePicker
+                        )
+
+                        CompactMetaButton(
+                            modifier = Modifier.weight(1f),
+                            icon = Icons.Rounded.Schedule,
+                            text = state.createDueTime.toDisplayableTime(),
+                            onClick = onOpenDueTimePicker
+                        )
+                    }
+                }
+
+                OutlinedTextField(
+                    value = state.createNote,
+                    onValueChange = onNoteChange,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .defaultMinSize(minHeight = 110.dp),
+                    maxLines = 4,
+                    placeholder = { Text(text = stringResource(R.string.todo_add_note)) },
+                    shape = MaterialTheme.shapes.medium,
+                    textStyle = MaterialTheme.typography.bodyMedium,
+                    colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.secondary,
+                        focusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.22f)
+                    )
+                )
+
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    PgSecondaryButton(
+                        modifier = Modifier.weight(1f),
+                        onClick = onDismiss
+                    ) {
                         Text(
-                            text = totalTask,
-                            style = MaterialTheme.typography.titleSmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = AlphaDisabled)
+                            text = stringResource(R.string.todo_cancel),
+                            color = MaterialTheme.colorScheme.onSecondary
                         )
                     }
 
-                    if (shouldShowDivider) {
-                        PgDivider(
-                            needSpacer = !isSelected,
-                            color = if (isSelected) {
-                                MaterialTheme.colorScheme.primaryContainer
-                            } else {
-                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
-                            }
+                    PgButton(
+                        modifier = Modifier.weight(1f),
+                        onClick = onConfirm,
+                        enabled = state.validCreateTaskName
+                    ) {
+                        Text(
+                            text = stringResource(R.string.todo_add),
+                            color = Color.White
                         )
                     }
                 }
             }
-        },
-        onDismiss = { onSwipeToDelete() }
-    )
-}
-
-@Composable
-private fun PgDivider(
-    needSpacer: Boolean,
-    color: Color = MaterialTheme.colorScheme.onSurface.copy(alpha = DividerAlpha),
-) {
-    Row {
-        if (needSpacer) {
-            Spacer(
-                Modifier
-                    .width(48.dp)
-                    .height(1.dp)
-                    .background(color = MaterialTheme.colorScheme.secondary)
-            )
         }
-        HorizontalDivider(color = color)
     }
 }
 
-@Preview
 @Composable
-fun CellPreview() {
-    ListCell(
-        RectangleShape,
-        "Name",
-        "23",
-        ListRed,
-        true,
-        false,
-        {},
-        {}
-    )
+private fun CompactMetaButton(
+    modifier: Modifier = Modifier,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    text: String,
+    onClick: () -> Unit,
+    height: Dp = 44.dp
+) {
+    PgSecondaryButton(
+        onClick = onClick,
+        modifier = modifier.height(height)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            PgIcon(imageVector = icon, modifier = Modifier.size(16.dp))
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelLarge,
+                maxLines = 1,
+                softWrap = false,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+}
+
+private fun TaskQuadrant.toTitle(): String {
+    return when (this) {
+        TaskQuadrant.Q1 -> "\u91CD\u8981\u4E14\u7D27\u6025"
+        TaskQuadrant.Q2 -> "\u91CD\u8981\u4E0D\u7D27\u6025"
+        TaskQuadrant.Q3 -> "\u4E0D\u91CD\u8981\u4F46\u7D27\u6025"
+        TaskQuadrant.Q4 -> "\u4E0D\u91CD\u8981\u4E0D\u7D27\u6025"
+    }
+}
+
+private fun TaskQuadrant.toColor(): Color {
+    return when (this) {
+        TaskQuadrant.Q1 -> ListRed
+        TaskQuadrant.Q2 -> ListBlue
+        TaskQuadrant.Q3 -> ListOrange
+        TaskQuadrant.Q4 -> ListGreen
+    }
 }

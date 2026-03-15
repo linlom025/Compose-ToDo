@@ -1,6 +1,5 @@
 package com.wisnu.kurniawan.composetodolist.foundation.uicomponent
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -43,6 +42,8 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.wisnu.kurniawan.composetodolist.R
 import com.wisnu.kurniawan.composetodolist.foundation.theme.AlphaDisabled
+import com.wisnu.kurniawan.composetodolist.foundation.theme.MediumIconButtonSize
+import com.wisnu.kurniawan.composetodolist.foundation.theme.TextFieldHeight
 
 const val MAX_TEXT_FIELD_CHARACTER = 255
 
@@ -58,9 +59,9 @@ fun PgTextField(
     visualTransformation: VisualTransformation = VisualTransformation.None,
     keyboardOptions: KeyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
     keyboardActions: KeyboardActions = KeyboardActions.Default,
-    shape: Shape = MaterialTheme.shapes.small,
+    shape: Shape = MaterialTheme.shapes.medium,
     textColor: Color = MaterialTheme.colorScheme.onSurface,
-    textStyle: TextStyle = MaterialTheme.typography.titleSmall.copy(color = MaterialTheme.colorScheme.onSurface),
+    textStyle: TextStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
     errorLabel: @Composable (() -> Unit)? = null,
 ) {
     var textFieldValueState by remember { mutableStateOf(TextFieldValue(text = value)) }
@@ -102,9 +103,9 @@ fun PgTextField(
     visualTransformation: VisualTransformation = VisualTransformation.None,
     keyboardOptions: KeyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
     keyboardActions: KeyboardActions = KeyboardActions.Default,
-    shape: Shape = MaterialTheme.shapes.small,
+    shape: Shape = MaterialTheme.shapes.medium,
     textColor: Color = MaterialTheme.colorScheme.onSurface,
-    textStyle: TextStyle = MaterialTheme.typography.titleSmall.copy(color = MaterialTheme.colorScheme.onSurface),
+    textStyle: TextStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
     errorLabel: @Composable (() -> Unit)? = null,
 ) {
     OutlinedTextField(
@@ -118,11 +119,7 @@ fun PgTextField(
             )
         },
         modifier = modifier
-            .height(56.dp)
-            .background(
-                color = MaterialTheme.colorScheme.secondary,
-                shape = shape
-            ),
+            .height(TextFieldHeight),
         visualTransformation = visualTransformation,
         trailingIcon = trailingIcon,
         leadingIcon = leadingIcon,
@@ -132,8 +129,13 @@ fun PgTextField(
         keyboardActions = keyboardActions,
         singleLine = true,
         colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = Color.Transparent,
-            unfocusedBorderColor = Color.Transparent,
+            focusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
+            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.22f),
+            disabledBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
+            focusedContainerColor = MaterialTheme.colorScheme.surface,
+            unfocusedContainerColor = MaterialTheme.colorScheme.secondary,
+            disabledContainerColor = MaterialTheme.colorScheme.secondary,
+            focusedTextColor = textColor,
             unfocusedTextColor = textColor
         ),
     )
@@ -160,7 +162,7 @@ fun PgBasicTextField(
     visualTransformation: VisualTransformation = VisualTransformation.None,
     onTextLayout: (TextLayoutResult) -> Unit = {},
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
-    cursorBrush: Brush = SolidColor(Color.Black),
+    cursorBrush: Brush = SolidColor(MaterialTheme.colorScheme.primary),
     decorationBox: @Composable (innerTextField: @Composable () -> Unit) -> Unit =
         @Composable { innerTextField -> innerTextField() }
 ) {
@@ -208,7 +210,7 @@ fun PgBasicTextField(
     visualTransformation: VisualTransformation = VisualTransformation.None,
     onTextLayout: (TextLayoutResult) -> Unit = {},
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
-    cursorBrush: Brush = SolidColor(Color.Black),
+    cursorBrush: Brush = SolidColor(MaterialTheme.colorScheme.primary),
     decorationBox: @Composable (innerTextField: @Composable () -> Unit) -> Unit =
         @Composable { innerTextField -> innerTextField() }
 ) {
@@ -271,7 +273,7 @@ fun PgToDoCreator(
                 }
             ),
             modifier = modifier
-                .height(50.dp)
+                .height(TextFieldHeight)
                 .weight(0.6F),
             trailingIcon = {
                 PgIconButton(
@@ -284,7 +286,7 @@ fun PgToDoCreator(
                     } else {
                         MaterialTheme.colorScheme.surfaceVariant
                     },
-                    modifier = Modifier.size(42.dp)
+                    modifier = Modifier.size(MediumIconButtonSize)
                 ) {
                     PgIcon(
                         imageVector = Icons.Rounded.ArrowUpward,
@@ -327,7 +329,7 @@ fun PgToDoCreateConfirmator(
                     placeholderValue = placeholder,
                     modifier = Modifier
                         .padding(horizontal = 16.dp)
-                        .height(50.dp)
+                        .height(TextFieldHeight)
                         .fillMaxWidth()
                         .focusRequester(focusRequester),
                     shape = MaterialTheme.shapes.large,

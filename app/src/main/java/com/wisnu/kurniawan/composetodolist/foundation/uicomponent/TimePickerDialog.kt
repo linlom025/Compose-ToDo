@@ -37,13 +37,13 @@ fun PgTimePickerDialog(
         ),
     ) {
         Surface(
-            shape = MaterialTheme.shapes.extraLarge,
+            shape = MaterialTheme.shapes.large,
             tonalElevation = 6.dp,
             modifier = Modifier
                 .width(IntrinsicSize.Min)
                 .height(IntrinsicSize.Min)
                 .background(
-                    shape = MaterialTheme.shapes.extraLarge,
+                    shape = MaterialTheme.shapes.large,
                     color = MaterialTheme.colorScheme.surface
                 ),
         ) {
@@ -55,23 +55,23 @@ fun PgTimePickerDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(
-                            bottom = 20.dp,
+                            bottom = 12.dp,
                             top = 16.dp,
-                            start = 24.dp
+                            start = 20.dp
                         ),
                     text = stringResource(R.string.todo_select_time),
-                    style = MaterialTheme.typography.labelLarge
+                    style = MaterialTheme.typography.titleSmall
                 )
                 Box(
                     modifier = Modifier.padding(
-                        start = 24.dp, end = 24.dp
+                        start = 20.dp, end = 20.dp
                     )
                 ) {
                     content()
                 }
                 Row(
                     modifier = Modifier
-                        .height(40.dp)
+                        .height(44.dp)
                         .padding(end = 8.dp, bottom = 8.dp)
                         .fillMaxWidth()
                 ) {
@@ -81,7 +81,7 @@ fun PgTimePickerDialog(
                     ) { Text(stringResource(R.string.todo_cancel)) }
                     TextButton(
                         onClick = onConfirm
-                    ) { Text("Oke") }
+                    ) { Text(stringResource(R.string.todo_done)) }
                 }
             }
         }

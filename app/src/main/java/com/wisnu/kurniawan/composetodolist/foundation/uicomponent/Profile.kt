@@ -9,7 +9,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -19,32 +21,41 @@ import com.wisnu.kurniawan.composetodolist.foundation.extension.firstOrEmpty
 
 @Composable
 fun Profile(email: String, modifier: Modifier = Modifier) {
-    Column(
+    Surface(
         modifier = modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.secondary,
+        tonalElevation = 1.dp
     ) {
-        Box(
+        Column(
             modifier = Modifier
-                .defaultMinSize(minWidth = 60.dp, minHeight = 60.dp)
-                .background(
-                    color = MaterialTheme.colorScheme.onSurface,
-                    shape = CircleShape
-                ),
-            contentAlignment = Alignment.Center
+                .fillMaxWidth()
+                .padding(vertical = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            Box(
+                modifier = Modifier
+                    .defaultMinSize(minWidth = 52.dp, minHeight = 52.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.16f),
+                        shape = CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = email.firstOrEmpty(),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(bottom = 2.dp)
+                )
+            }
+
+            Spacer(Modifier.height(8.dp))
+
             Text(
-                text = email.firstOrEmpty(),
-                style = MaterialTheme.typography.headlineLarge,
-                color = MaterialTheme.colorScheme.surface,
-                modifier = Modifier.padding(bottom = 4.dp)
+                text = email,
+                style = MaterialTheme.typography.bodyLarge
             )
         }
-
-        Spacer(Modifier.height(8.dp))
-
-        Text(
-            text = email,
-            style = MaterialTheme.typography.headlineSmall
-        )
     }
 }

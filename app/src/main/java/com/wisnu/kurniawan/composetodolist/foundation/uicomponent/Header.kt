@@ -6,8 +6,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.wisnu.kurniawan.composetodolist.foundation.theme.Space12
 
 @Composable
 fun PgModalBackHeader(
@@ -15,10 +17,13 @@ fun PgModalBackHeader(
     onClickBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Row(modifier = modifier) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
         Box(
             modifier = Modifier
-                .padding(start = 16.dp)
+                .padding(start = Space12)
                 .weight(0.2F)
         ) {
             PgModalBackButton(

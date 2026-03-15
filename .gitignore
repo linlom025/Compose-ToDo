@@ -12,3 +12,11 @@ local.properties
 
 # Keystore files
 *.jks
+/dist
+/output
+/tmp
+/tmp_apk_check
+/*.apk
+/*.xml
+/_repo.xml
+/.serena

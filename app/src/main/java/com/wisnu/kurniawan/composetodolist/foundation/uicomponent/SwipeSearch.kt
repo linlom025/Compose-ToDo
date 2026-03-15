@@ -38,7 +38,6 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
-import com.wisnu.foundation.coreloggr.Loggr
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -74,7 +73,10 @@ class SwipeSearchState(
 
     internal suspend fun animateOffsetTo(offset: Float) {
         mutatorMutex.mutate {
-            offsetState.animateTo(offset)
+            offsetState.animateTo(
+                targetValue = offset,
+                animationSpec = MotionTokens.searchSnapSpec()
+            )
         }
     }
 
@@ -140,7 +142,8 @@ fun SwipeSearch(
 
                     animate(
                         initialValue = offset,
-                        targetValue = targetOffset
+                        targetValue = targetOffset,
+                        animationSpec = MotionTokens.searchSnapSpec()
                     ) { value, _ ->
                         offset = value
                     }
@@ -152,8 +155,9 @@ fun SwipeSearch(
 
             Box {
                 // Calculate alpha in percent according to offset
-                val alpha = offset / searchHeightPx
-                if (alpha != 0f) {
+                val alpha = (offset / searchHeightPx).coerceIn(0f, 1f)
+                val overlayVisible = alpha > 0.01f || state.isSwipeInProgress || state.currentValue == SwipeSearchValue.Opened
+                if (overlayVisible) {
                     Column(
                         modifier = Modifier
                             .alpha(alpha)
@@ -294,14 +298,14 @@ private class SwipeSearchNestedScrollConnection(
 
 
     private fun performDrag(available: Offset, scrollInfo: String): Offset {
-        state.isSwipeInProgress = true
+        if (!state.isSwipeInProgress) {
+            state.isSwipeInProgress = true
+        }
 
         val clamped = (available.y * DragMultiplier + state.offset).coerceAtLeast(0f)
         val deltaToConsume = clamped - state.offset
 
         if (scrollInfo == SCROLL_UP && deltaToConsume == 0f) return Offset.Zero
-
-        Loggr.debug { "performDrag $deltaToConsume $scrollInfo" }
 
         coroutineScope.launch {
             state.dispatchScrollDelta(deltaToConsume, searchHeightPx.toFloat())
@@ -317,10 +321,10 @@ private val SearchHeight = 100.dp
 private const val DragMultiplier = 0.5f
 private const val PushBackDropMultiplier = 3f
 
-private const val VelocityThreshold = 1000F
+private const val VelocityThreshold = 850F
 
-private const val OpenDragThreshold = 0.74
-private const val CloseDragThreshold = 0.34
+private const val OpenDragThreshold = 0.66
+private const val CloseDragThreshold = 0.42
 
 private const val SCROLL_UP = "UP"
 private const val SCROLL_DOWN = "DOWN"

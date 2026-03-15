@@ -9,7 +9,7 @@
       "client_info": {
         "mobilesdk_app_id": "1:692540344694:android:5cff12b8094fc6bb7d5257",
         "android_client_info": {
-          "package_name": "com.wisnu.kurniawan.composetodolist"
+          "package_name": "com.lltodo.app"
         }
       },
       "oauth_client": [
@@ -38,7 +38,7 @@
       "client_info": {
         "mobilesdk_app_id": "1:692540344694:android:2bcbc38371ee5e0d7d5257",
         "android_client_info": {
-          "package_name": "com.wisnu.kurniawan.composetodolist.debug"
+          "package_name": "com.lltodo.app.debug"
         }
       },
       "oauth_client": [

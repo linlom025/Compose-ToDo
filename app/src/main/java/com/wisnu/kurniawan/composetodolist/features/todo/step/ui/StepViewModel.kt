@@ -12,8 +12,6 @@ import com.wisnu.kurniawan.composetodolist.model.ToDoTask
 import com.wisnu.kurniawan.composetodolist.runtime.navigation.ARG_LIST_ID
 import com.wisnu.kurniawan.composetodolist.runtime.navigation.ARG_TASK_ID
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -30,8 +28,6 @@ class StepViewModel @Inject constructor(
     private val taskId = savedStateHandle.get<String>(ARG_TASK_ID)
     private val listId = savedStateHandle.get<String>(ARG_LIST_ID)
 
-    private var updateNoteJob: Job? = null
-
     init {
         initTask()
     }
@@ -41,7 +37,14 @@ class StepViewModel @Inject constructor(
             if (taskId != null && listId != null) {
                 environment.getTask(taskId, listId)
                     .collect { (task, color) ->
-                        setState { copy(task = task, color = color, repeatItems = repeatItems.select(task.repeat)) }
+                        setState {
+                            copy(
+                                task = task,
+                                color = color,
+                                repeatItems = repeatItems.select(task.repeat),
+                                editNote = if (isEditingNote) editNote else TextFieldValue(task.note)
+                            )
+                        }
                     }
             }
         }
@@ -78,9 +81,20 @@ class StepViewModel @Inject constructor(
                     environment.toggleTaskStatus(state.value.task)
                 }
             }
-            StepAction.TaskAction.Delete -> {
+            StepAction.TaskAction.RequestDelete -> {
+                viewModelScope.launch {
+                    setState { copy(showDeleteTaskConfirmDialog = true) }
+                }
+            }
+            StepAction.TaskAction.ConfirmDelete -> {
                 viewModelScope.launch {
                     environment.deleteTask(state.value.task)
+                    setState { copy(showDeleteTaskConfirmDialog = false) }
+                }
+            }
+            StepAction.TaskAction.DismissDelete -> {
+                viewModelScope.launch {
+                    setState { copy(showDeleteTaskConfirmDialog = false) }
                 }
             }
 
@@ -237,18 +251,31 @@ class StepViewModel @Inject constructor(
 
     private fun handleStepNoteAction(action: StepAction.NoteAction) {
         when (action) {
-            is StepAction.NoteAction.ChangeNote -> {
-                updateNoteJob?.cancel()
-                updateNoteJob = viewModelScope.launch {
-                    setState { copy(editNote = action.note) }
-                    delay(250)
-                    environment.updateTaskNote(state.value.editNote.text, state.value.task.id)
-                }
-            }
-            is StepAction.NoteAction.OnShow -> {
+            StepAction.NoteAction.StartEdit -> {
                 viewModelScope.launch {
                     val note = state.value.task.note
-                    setState { copy(editNote = editNote.copy(text = note, selection = TextRange(note.length))) }
+                    setState {
+                        copy(
+                            isEditingNote = true,
+                            editNote = TextFieldValue(note, TextRange(note.length))
+                        )
+                    }
+                }
+            }
+
+            is StepAction.NoteAction.ChangeNote -> {
+                viewModelScope.launch {
+                    setState { copy(editNote = action.note) }
+                }
+            }
+
+            StepAction.NoteAction.SaveAndStopEdit -> {
+                viewModelScope.launch {
+                    val note = state.value.editNote.text
+                    if (note != state.value.task.note) {
+                        environment.updateTaskNote(note, state.value.task.id)
+                    }
+                    setState { copy(isEditingNote = false) }
                 }
             }
         }
