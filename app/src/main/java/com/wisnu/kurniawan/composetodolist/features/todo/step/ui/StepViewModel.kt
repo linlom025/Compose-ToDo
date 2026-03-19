@@ -42,7 +42,8 @@ class StepViewModel @Inject constructor(
                                 task = task,
                                 color = color,
                                 repeatItems = repeatItems.select(task.repeat),
-                                editNote = if (isEditingNote) editNote else TextFieldValue(task.note)
+                                editNote = if (isEditingNote) editNote else TextFieldValue(task.note),
+                                noteOriginal = if (isEditingNote) noteOriginal else task.note
                             )
                         }
                     }
@@ -257,7 +258,10 @@ class StepViewModel @Inject constructor(
                     setState {
                         copy(
                             isEditingNote = true,
-                            editNote = TextFieldValue(note, TextRange(note.length))
+                            editNote = TextFieldValue(note, TextRange(note.length)),
+                            noteOriginal = note,
+                            showUnsavedNoteDialog = false,
+                            pendingNoteExitTarget = null
                         )
                     }
                 }
@@ -269,13 +273,136 @@ class StepViewModel @Inject constructor(
                 }
             }
 
-            StepAction.NoteAction.SaveAndStopEdit -> {
+            StepAction.NoteAction.ClickDone -> {
                 viewModelScope.launch {
                     val note = state.value.editNote.text
                     if (note != state.value.task.note) {
                         environment.updateTaskNote(note, state.value.task.id)
                     }
-                    setState { copy(isEditingNote = false) }
+                    setState {
+                        copy(
+                            isEditingNote = false,
+                            noteOriginal = note,
+                            showUnsavedNoteDialog = false,
+                            pendingNoteExitTarget = null
+                        )
+                    }
+                }
+            }
+
+            StepAction.NoteAction.ClickCancel -> {
+                viewModelScope.launch {
+                    val currentState = state.value
+                    if (currentState.isEditingNote && currentState.editNote.text != currentState.noteOriginal) {
+                        setState {
+                            copy(
+                                showUnsavedNoteDialog = true,
+                                pendingNoteExitTarget = NoteExitTarget.EDIT
+                            )
+                        }
+                    } else {
+                        setState {
+                            copy(
+                                isEditingNote = false,
+                                editNote = TextFieldValue(task.note),
+                                noteOriginal = task.note,
+                                showUnsavedNoteDialog = false,
+                                pendingNoteExitTarget = null
+                            )
+                        }
+                    }
+                }
+            }
+
+            is StepAction.NoteAction.RequestExitWithUnsaved -> {
+                viewModelScope.launch {
+                    val currentState = state.value
+                    if (!currentState.isEditingNote) {
+                        if (action.target == NoteExitTarget.SCREEN) {
+                            setEffect(StepEffect.NavigateBack)
+                        }
+                        return@launch
+                    }
+
+                    if (currentState.editNote.text != currentState.noteOriginal) {
+                        setState {
+                            copy(
+                                showUnsavedNoteDialog = true,
+                                pendingNoteExitTarget = action.target
+                            )
+                        }
+                    } else {
+                        setState {
+                            copy(
+                                isEditingNote = false,
+                                editNote = TextFieldValue(task.note),
+                                noteOriginal = task.note,
+                                showUnsavedNoteDialog = false,
+                                pendingNoteExitTarget = null
+                            )
+                        }
+
+                        if (action.target == NoteExitTarget.SCREEN) {
+                            setEffect(StepEffect.NavigateBack)
+                        }
+                    }
+                }
+            }
+
+            StepAction.NoteAction.ConfirmSaveAndExit -> {
+                viewModelScope.launch {
+                    val currentState = state.value
+                    val target = currentState.pendingNoteExitTarget
+                    val note = currentState.editNote.text
+                    if (note != currentState.task.note) {
+                        environment.updateTaskNote(note, currentState.task.id)
+                    }
+
+                    setState {
+                        copy(
+                            isEditingNote = false,
+                            noteOriginal = note,
+                            showUnsavedNoteDialog = false,
+                            pendingNoteExitTarget = null
+                        )
+                    }
+
+                    if (target == NoteExitTarget.SCREEN) {
+                        setEffect(StepEffect.NavigateBack)
+                    }
+                }
+            }
+
+            StepAction.NoteAction.DiscardAndExit -> {
+                viewModelScope.launch {
+                    val currentState = state.value
+                    val target = currentState.pendingNoteExitTarget
+                    val taskNote = currentState.task.note
+
+                    setState {
+                        copy(
+                            isEditingNote = false,
+                            editNote = TextFieldValue(taskNote),
+                            noteOriginal = taskNote,
+                            showUnsavedNoteDialog = false,
+                            pendingNoteExitTarget = null
+                        )
+                    }
+
+                    if (target == NoteExitTarget.SCREEN) {
+                        setEffect(StepEffect.NavigateBack)
+                    }
+                }
+            }
+
+            StepAction.NoteAction.ContinueEdit -> {
+                viewModelScope.launch {
+                    setState {
+                        copy(
+                            showUnsavedNoteDialog = false,
+                            pendingNoteExitTarget = null
+                        )
+                    }
                 }
             }
         }

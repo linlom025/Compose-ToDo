@@ -1,5 +1,6 @@
 package com.wisnu.kurniawan.composetodolist.features.todo.step.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -50,13 +51,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.wisnu.kurniawan.composetodolist.R
 import com.wisnu.kurniawan.composetodolist.foundation.extension.displayable
@@ -70,12 +71,14 @@ import com.wisnu.kurniawan.composetodolist.foundation.theme.ListBlue
 import com.wisnu.kurniawan.composetodolist.foundation.theme.ListRed
 import com.wisnu.kurniawan.composetodolist.foundation.theme.MediumRadius
 import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.PgConfirmDeleteDialog
+import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.PgButton
 import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.PgIcon
 import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.PgIconButton
 import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.PgIconButtonSize
 import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.PgIconButtonVariant
 import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.PgPageLayout
 import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.PgDatePickerDialog
+import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.PgSecondaryButton
 import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.PgTimePickerDialog
 import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.PgToDoItemCell
 import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.MotionTokens
@@ -108,16 +111,17 @@ fun StepScreen(
             is StepEffect.ScrollTo -> {
                 listState.animateScrollToItem(it.position)
             }
+            StepEffect.NavigateBack -> onClickBack()
         }
     }
 
     StepScreen(
-        onClickBack = onClickBack,
         task = state.task,
         steps = state.task.steps,
         color = state.color.toColor(),
         listState = listState,
         showDeleteTaskConfirmDialog = state.showDeleteTaskConfirmDialog,
+        showUnsavedNoteDialog = state.showUnsavedNoteDialog,
 
         showDueDatePicker = state.showDueDatePicker,
         dueDateInitial = state.dueDateInitial,
@@ -166,27 +170,30 @@ fun StepScreen(
             viewModel.dispatch(StepAction.TaskAction.ChangeDueTime(checked))
         },
 
+        onRequestBack = {
+            viewModel.dispatch(StepAction.NoteAction.RequestExitWithUnsaved(NoteExitTarget.SCREEN))
+        },
         onClickRepeatItem = onClickRepeatItem,
         isEditingNote = state.isEditingNote,
         editNote = state.editNote,
         onClickEditNote = { viewModel.dispatch(StepAction.NoteAction.StartEdit) },
         onEditNoteChange = { viewModel.dispatch(StepAction.NoteAction.ChangeNote(it)) },
-        onEditNoteFocusChanged = { focused ->
-            if (!focused) {
-                viewModel.dispatch(StepAction.NoteAction.SaveAndStopEdit)
-            }
-        }
+        onClickNoteDone = { viewModel.dispatch(StepAction.NoteAction.ClickDone) },
+        onClickNoteCancel = { viewModel.dispatch(StepAction.NoteAction.ClickCancel) },
+        onConfirmSaveAndExit = { viewModel.dispatch(StepAction.NoteAction.ConfirmSaveAndExit) },
+        onDiscardAndExit = { viewModel.dispatch(StepAction.NoteAction.DiscardAndExit) },
+        onContinueEdit = { viewModel.dispatch(StepAction.NoteAction.ContinueEdit) }
     )
 }
 
 @Composable
 private fun StepScreen(
-    onClickBack: () -> Unit,
     task: ToDoTask,
     steps: List<ToDoStep>,
     color: Color,
     listState: LazyListState,
     showDeleteTaskConfirmDialog: Boolean,
+    showUnsavedNoteDialog: Boolean,
 
     showDueDatePicker: Boolean,
     dueDateInitial: LocalDate,
@@ -214,17 +221,23 @@ private fun StepScreen(
     onClickDueTimeItemCancel: () -> Unit,
     onCheckDueTimeItemChange: (Boolean) -> Unit,
 
+    onRequestBack: () -> Unit,
     onClickRepeatItem: () -> Unit,
     isEditingNote: Boolean,
     editNote: TextFieldValue,
     onClickEditNote: () -> Unit,
     onEditNoteChange: (TextFieldValue) -> Unit,
-    onEditNoteFocusChanged: (Boolean) -> Unit,
+    onClickNoteDone: () -> Unit,
+    onClickNoteCancel: () -> Unit,
+    onConfirmSaveAndExit: () -> Unit,
+    onDiscardAndExit: () -> Unit,
+    onContinueEdit: () -> Unit,
 ) {
     val resources = LocalContext.current.resources
+    BackHandler(onBack = onRequestBack)
 
     PgPageLayout {
-        StepTitle(onClickBack = onClickBack)
+        StepTitle(onClickBack = onRequestBack)
 
         TaskCell(
             task = task,
@@ -268,7 +281,8 @@ private fun StepScreen(
             editNote = editNote,
             onClickEditNote = onClickEditNote,
             onEditNoteChange = onEditNoteChange,
-            onEditNoteFocusChanged = onEditNoteFocusChanged,
+            onClickNoteDone = onClickNoteDone,
+            onClickNoteCancel = onClickNoteCancel,
             noteUpdatedAtTitle = task.noteUpdatedAtDisplayable()
         )
 
@@ -281,6 +295,14 @@ private fun StepScreen(
         PgConfirmDeleteDialog(
             onConfirm = onConfirmTaskDelete,
             onDismiss = onDismissTaskDelete
+        )
+    }
+
+    if (showUnsavedNoteDialog) {
+        NoteUnsavedDialog(
+            onSaveAndExit = onConfirmSaveAndExit,
+            onDiscard = onDiscardAndExit,
+            onContinueEdit = onContinueEdit
         )
     }
 }
@@ -427,7 +449,8 @@ private fun StepContent(
     editNote: TextFieldValue,
     onClickEditNote: () -> Unit,
     onEditNoteChange: (TextFieldValue) -> Unit,
-    onEditNoteFocusChanged: (Boolean) -> Unit,
+    onClickNoteDone: () -> Unit,
+    onClickNoteCancel: () -> Unit,
     noteUpdatedAtTitle: String,
 ) {
     if (showDueTimePicker) {
@@ -571,12 +594,20 @@ private fun StepContent(
 
         item {
             val shape = RoundedCornerShape(size = MediumRadius)
+            val noteCardModifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .clip(shape)
+                .let {
+                    if (isEditingNote) {
+                        it
+                    } else {
+                        it.clickable(onClick = onClickEditNote)
+                    }
+                }
+
             Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-                    .clip(shape)
-                    .clickable(onClick = onClickEditNote),
+                modifier = noteCardModifier,
                 shape = shape,
                 color = MaterialTheme.colorScheme.secondary
             ) {
@@ -594,13 +625,25 @@ private fun StepContent(
                         OutlinedTextField(
                             value = editNote,
                             onValueChange = onEditNoteChange,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .onFocusChanged { onEditNoteFocusChanged(it.isFocused) },
+                            modifier = Modifier.fillMaxWidth(),
                             minLines = 4,
                             maxLines = 6,
                             textStyle = MaterialTheme.typography.bodyMedium
                         )
+
+                        Spacer(Modifier.size(8.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End
+                        ) {
+                            TextButton(onClick = onClickNoteCancel) {
+                                Text(text = stringResource(R.string.todo_cancel))
+                            }
+                            TextButton(onClick = onClickNoteDone) {
+                                Text(text = stringResource(R.string.todo_done))
+                            }
+                        }
                     }
 
                     Spacer(Modifier.size(8.dp))
@@ -813,6 +856,66 @@ private fun StepFooter(
             style = MaterialTheme.typography.labelMedium,
             modifier = Modifier.align(Alignment.Center)
         )
+    }
+}
+
+@Composable
+private fun NoteUnsavedDialog(
+    onSaveAndExit: () -> Unit,
+    onDiscard: () -> Unit,
+    onContinueEdit: () -> Unit,
+) {
+    Dialog(onDismissRequest = onContinueEdit) {
+        Surface(
+            shape = MaterialTheme.shapes.large,
+            tonalElevation = 6.dp,
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.todo_note_unsaved_title),
+                    style = MaterialTheme.typography.titleSmall
+                )
+                Text(
+                    text = stringResource(R.string.todo_note_unsaved_message),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    PgSecondaryButton(
+                        modifier = Modifier.weight(1f),
+                        onClick = onDiscard
+                    ) {
+                        Text(
+                            text = stringResource(R.string.todo_note_unsaved_discard),
+                            color = MaterialTheme.colorScheme.onSecondary
+                        )
+                    }
+
+                    PgButton(
+                        modifier = Modifier.weight(1f),
+                        onClick = onSaveAndExit
+                    ) {
+                        Text(
+                            text = stringResource(R.string.todo_note_unsaved_save_exit),
+                            color = Color.White
+                        )
+                    }
+                }
+
+                TextButton(
+                    modifier = Modifier.align(Alignment.End),
+                    onClick = onContinueEdit
+                ) {
+                    Text(text = stringResource(R.string.todo_note_unsaved_continue))
+                }
+            }
+        }
     }
 }
 

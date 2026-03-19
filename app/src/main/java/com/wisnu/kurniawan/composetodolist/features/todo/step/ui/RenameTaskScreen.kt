@@ -33,6 +33,7 @@ fun RenameTaskScreen(
         placeholder = stringResource(R.string.todo_rename_task),
         isValidName = state.validEditTaskName,
         focusRequester = focusRequest,
+        multiLineInput = true,
         onNameChange = { viewModel.dispatch(StepAction.TaskAction.ChangeTaskName(it)) },
         onCancelClick = onCancelClick,
         onSaveClick = {

@@ -37,5 +37,12 @@
     <color name="aurora_item_background_l2">#3D514A</color>
     <color name="aurora_on">#D0E0CF</color>
 
+    <color name="launcher_background">#F4EFE6</color>
+    <color name="launcher_quadrant_blue">#D7E3F8</color>
+    <color name="launcher_quadrant_green">#CFF4E7</color>
+    <color name="launcher_quadrant_orange">#FFE3BF</color>
+    <color name="launcher_check_blue">#2F57D8</color>
+    <color name="launcher_dot_orange">#F59E0B</color>
+
     <color name="error">#B00020</color>
 </resources>

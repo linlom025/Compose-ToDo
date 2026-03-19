@@ -95,6 +95,11 @@
 
     <string name="todo_show_complete">Tampilkan tugas yang selesai</string>
     <string name="todo_hide_complete">Sembunyikan tugas yang selesai</string>
+    <string name="todo_note_unsaved_title">Catatan belum disimpan</string>
+    <string name="todo_note_unsaved_message">Catatan berubah. Simpan sebelum keluar?</string>
+    <string name="todo_note_unsaved_save_exit">Simpan dan keluar</string>
+    <string name="todo_note_unsaved_discard">Buang perubahan</string>
+    <string name="todo_note_unsaved_continue">Lanjut edit</string>
 
     <string name="todo_select_time">Pilih waktu</string>
 </resources>

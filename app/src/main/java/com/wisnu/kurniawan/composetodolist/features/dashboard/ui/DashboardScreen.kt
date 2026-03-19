@@ -142,9 +142,9 @@ private fun DashboardContent(
                 ) {
                     PgIcon(
                         imageVector = if (showCompleted) {
-                            Icons.Filled.VisibilityOff
-                        } else {
                             Icons.Filled.Visibility
+                        } else {
+                            Icons.Filled.VisibilityOff
                         }
                     )
                 }

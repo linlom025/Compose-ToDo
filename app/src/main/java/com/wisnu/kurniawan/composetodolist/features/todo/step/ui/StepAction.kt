@@ -5,6 +5,11 @@ import com.wisnu.kurniawan.composetodolist.model.ToDoStep
 import java.time.LocalDate
 import java.time.LocalTime
 
+enum class NoteExitTarget {
+    EDIT,
+    SCREEN
+}
+
 sealed class StepAction {
     sealed class TaskAction : StepAction() {
         object ClickSave : TaskAction()
@@ -46,6 +51,11 @@ sealed class StepAction {
     sealed class NoteAction : StepAction() {
         object StartEdit : NoteAction()
         data class ChangeNote(val note: TextFieldValue) : NoteAction()
-        object SaveAndStopEdit : NoteAction()
+        object ClickDone : NoteAction()
+        object ClickCancel : NoteAction()
+        data class RequestExitWithUnsaved(val target: NoteExitTarget) : NoteAction()
+        object ConfirmSaveAndExit : NoteAction()
+        object DiscardAndExit : NoteAction()
+        object ContinueEdit : NoteAction()
     }
 }

@@ -4,6 +4,7 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.ui.text.input.TextFieldValue
 import com.wisnu.kurniawan.composetodolist.features.todo.main.data.QuadrantTask
 import com.wisnu.kurniawan.composetodolist.foundation.datasource.local.model.ToDoGroupDb
+import com.wisnu.kurniawan.composetodolist.foundation.extension.sortedByTaskForDisplay
 import com.wisnu.kurniawan.composetodolist.model.TaskQuadrant
 import com.wisnu.kurniawan.composetodolist.model.ToDoGroup
 import com.wisnu.kurniawan.composetodolist.model.ToDoList
@@ -31,15 +32,12 @@ data class ToDoMainState(
     val validCreateTaskName: Boolean = createTaskName.text.isNotBlank()
 
     val quadrants: Map<TaskQuadrant, List<QuadrantTask>> = TaskQuadrant.entries.associateWith { quadrant ->
-        tasks
-            .filter { it.task.quadrant == quadrant }
-            .let { list ->
-                if (showCompleted) {
-                    list
-                } else {
-                    list.filter { it.task.status != ToDoStatus.COMPLETE }
-                }
-            }
+        val quadrantTasks = tasks.filter { it.task.quadrant == quadrant }
+        if (showCompleted) {
+            quadrantTasks.sortedByTaskForDisplay { it.task }
+        } else {
+            quadrantTasks.filter { it.task.status != ToDoStatus.COMPLETE }
+        }
     }
 }
 

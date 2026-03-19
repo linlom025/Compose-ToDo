@@ -3,6 +3,7 @@ package com.wisnu.kurniawan.composetodolist.features.calendar.ui
 import androidx.lifecycle.viewModelScope
 import com.wisnu.foundation.coreviewmodel.StatefulViewModel
 import com.wisnu.kurniawan.composetodolist.features.calendar.data.ICalendarEnvironment
+import com.wisnu.kurniawan.composetodolist.foundation.extension.sortedByTaskForDisplay
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -84,7 +85,7 @@ class CalendarViewModel @Inject constructor(
             environment.loadTasksByCreatedDate().collect { taskItems ->
                 val grouped = taskItems
                     .groupBy { it.task.createdAt.toLocalDate() }
-                    .mapValues { (_, items) -> items.sortedByDescending { it.task.createdAt } }
+                    .mapValues { (_, items) -> items.sortedByTaskForDisplay { it.task } }
 
                 setState {
                     copy(
