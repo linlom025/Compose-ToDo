@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.wisnu.foundation.coreviewmodel.StatefulViewModel
 import com.wisnu.kurniawan.composetodolist.features.todo.detail.data.IListDetailEnvironment
 import com.wisnu.kurniawan.composetodolist.features.todo.step.ui.ToDoRepeatItem
+import com.wisnu.kurniawan.composetodolist.foundation.extension.sortedForDisplay
 import com.wisnu.kurniawan.composetodolist.foundation.extension.toColor
 import com.wisnu.kurniawan.composetodolist.foundation.extension.toToDoColor
 import com.wisnu.kurniawan.composetodolist.model.TaskQuadrant
@@ -199,27 +200,27 @@ class ListDetailViewModel @Inject constructor(
 }
 
 fun ToDoList.toToDoListState(): ToDoListState {
-    val tasks = tasks
+    val sortedTasks = tasks.sortedForDisplay()
+    val taskItems = sortedTasks
         .map {
             when (it.status) {
                 ToDoStatus.COMPLETE -> ToDoTaskItem.Complete(it)
                 ToDoStatus.IN_PROGRESS -> ToDoTaskItem.InProgress(it)
             }
         }
-        .sortedBy { it is ToDoTaskItem.Complete }
         .toMutableList()
 
-    val firstCompleteIndex = tasks.indexOfFirst { it is ToDoTaskItem.Complete }
+    val firstCompleteIndex = sortedTasks.indexOfFirst { it.status == ToDoStatus.COMPLETE }
 
     if (firstCompleteIndex != -1) {
-        tasks.add(firstCompleteIndex, ToDoTaskItem.CompleteHeader())
+        taskItems.add(firstCompleteIndex, ToDoTaskItem.CompleteHeader())
     }
 
     return ToDoListState(
         id = id,
         name = name,
         color = color,
-        tasks = tasks
+        tasks = taskItems
     )
 }
 

@@ -105,4 +105,9 @@
     <string name="todo_delete_confirm_action">删除</string>
 
     <string name="todo_select_time">选择时间</string>
+    <string name="todo_note_unsaved_title">备注有修改</string>
+    <string name="todo_note_unsaved_message">备注内容已更改，离开前是否保存？</string>
+    <string name="todo_note_unsaved_save_exit">保存并退出</string>
+    <string name="todo_note_unsaved_discard">放弃修改</string>
+    <string name="todo_note_unsaved_continue">继续编辑</string>
 </resources>

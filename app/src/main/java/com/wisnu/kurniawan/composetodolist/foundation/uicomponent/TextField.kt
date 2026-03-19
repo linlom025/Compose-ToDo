@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -62,6 +63,9 @@ fun PgTextField(
     shape: Shape = MaterialTheme.shapes.medium,
     textColor: Color = MaterialTheme.colorScheme.onSurface,
     textStyle: TextStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
+    singleLine: Boolean = true,
+    minLines: Int = 1,
+    maxLines: Int = 1,
     errorLabel: @Composable (() -> Unit)? = null,
 ) {
     var textFieldValueState by remember { mutableStateOf(TextFieldValue(text = value)) }
@@ -86,7 +90,10 @@ fun PgTextField(
         keyboardActions = keyboardActions,
         textColor = textColor,
         errorLabel = errorLabel,
-        textStyle = textStyle
+        textStyle = textStyle,
+        singleLine = singleLine,
+        minLines = minLines,
+        maxLines = maxLines
     )
 
 }
@@ -106,6 +113,9 @@ fun PgTextField(
     shape: Shape = MaterialTheme.shapes.medium,
     textColor: Color = MaterialTheme.colorScheme.onSurface,
     textStyle: TextStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
+    singleLine: Boolean = true,
+    minLines: Int = 1,
+    maxLines: Int = 1,
     errorLabel: @Composable (() -> Unit)? = null,
 ) {
     OutlinedTextField(
@@ -118,8 +128,11 @@ fun PgTextField(
                 color = MaterialTheme.colorScheme.onSurface.copy(AlphaDisabled)
             )
         },
-        modifier = modifier
-            .height(TextFieldHeight),
+        modifier = if (singleLine) {
+            modifier.height(TextFieldHeight)
+        } else {
+            modifier.heightIn(min = TextFieldHeight)
+        },
         visualTransformation = visualTransformation,
         trailingIcon = trailingIcon,
         leadingIcon = leadingIcon,
@@ -127,7 +140,9 @@ fun PgTextField(
         isError = isError,
         keyboardOptions = keyboardOptions,
         keyboardActions = keyboardActions,
-        singleLine = true,
+        singleLine = singleLine,
+        minLines = minLines,
+        maxLines = maxLines,
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
             unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.22f),
@@ -311,6 +326,7 @@ fun PgToDoCreateConfirmator(
     placeholder: String,
     isValidName: Boolean,
     focusRequester: FocusRequester,
+    multiLineInput: Boolean = false,
     onNameChange: (TextFieldValue) -> Unit,
     onCancelClick: () -> Unit,
     onSaveClick: () -> Unit,
@@ -329,10 +345,12 @@ fun PgToDoCreateConfirmator(
                     placeholderValue = placeholder,
                     modifier = Modifier
                         .padding(horizontal = 16.dp)
-                        .height(TextFieldHeight)
                         .fillMaxWidth()
                         .focusRequester(focusRequester),
                     shape = MaterialTheme.shapes.large,
+                    singleLine = !multiLineInput,
+                    minLines = if (multiLineInput) 2 else 1,
+                    maxLines = if (multiLineInput) 4 else 1,
                 )
             }
 
