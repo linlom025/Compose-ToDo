@@ -1,40 +1,42 @@
 package com.wisnu.kurniawan.composetodolist.features.todo.step.data
 
-import com.wisnu.kurniawan.composetodolist.foundation.datasource.local.provider.ToDoListProvider
+import com.wisnu.kurniawan.composetodolist.features.todo.main.data.QuadrantSystemLists
 import com.wisnu.kurniawan.composetodolist.foundation.datasource.local.provider.ToDoStepProvider
 import com.wisnu.kurniawan.composetodolist.foundation.datasource.local.provider.ToDoTaskProvider
+import com.wisnu.kurniawan.composetodolist.foundation.datasource.preference.provider.AppDisplayNameProvider
 import com.wisnu.kurniawan.composetodolist.foundation.extension.toggle
 import com.wisnu.kurniawan.composetodolist.foundation.extension.toggleStatusHandler
 import com.wisnu.kurniawan.composetodolist.foundation.wrapper.DateTimeProvider
 import com.wisnu.kurniawan.composetodolist.foundation.wrapper.IdProvider
+import com.wisnu.kurniawan.composetodolist.model.QuadrantDisplayNames
+import com.wisnu.kurniawan.composetodolist.model.TaskQuadrant
 import com.wisnu.kurniawan.composetodolist.model.ToDoColor
 import com.wisnu.kurniawan.composetodolist.model.ToDoRepeat
 import com.wisnu.kurniawan.composetodolist.model.ToDoStep
 import com.wisnu.kurniawan.composetodolist.model.ToDoTask
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flatMapConcat
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.take
 import java.time.LocalDateTime
 import javax.inject.Inject
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class StepEnvironment @Inject constructor(
-    private val toDoListProvider: ToDoListProvider,
     private val toDoTaskProvider: ToDoTaskProvider,
     private val toDoStepProvider: ToDoStepProvider,
+    private val appDisplayNameProvider: AppDisplayNameProvider,
     override val idProvider: IdProvider,
     override val dateTimeProvider: DateTimeProvider,
 ) : IStepEnvironment {
 
-    override fun getTask(taskId: String, listId: String): Flow<Pair<ToDoTask, ToDoColor>> {
-        return toDoTaskProvider.getTaskWithStepsById(taskId)
-            .flatMapConcat { task ->
-                toDoListProvider.getListById(listId)
-                    .take(1)
-                    .map { Pair(task, it.color) }
-            }
+    override fun getTask(taskId: String): Flow<Pair<ToDoTask, ToDoColor>> {
+        return toDoTaskProvider.getTaskWithListById(taskId)
+            .map { taskWithList -> Pair(taskWithList.task, taskWithList.list.color) }
+    }
+
+    override fun getQuadrantDisplayNames(): Flow<QuadrantDisplayNames> {
+        return appDisplayNameProvider.getDisplayNameConfig()
+            .map { config -> config.quadrantTitles }
     }
 
     override suspend fun deleteTask(task: ToDoTask) {
@@ -56,6 +58,17 @@ class StepEnvironment @Inject constructor(
 
     override suspend fun setRepeatTask(task: ToDoTask, toDoRepeat: ToDoRepeat) {
         toDoTaskProvider.updateTaskRepeat(task.id, toDoRepeat, dateTimeProvider.now())
+    }
+
+    override suspend fun moveTaskToQuadrant(taskId: String, targetQuadrant: TaskQuadrant) {
+        val currentDate = dateTimeProvider.now()
+        val targetListId = QuadrantSystemLists.listIdOf(targetQuadrant)
+        toDoTaskProvider.updateTaskListAndQuadrant(
+            id = taskId,
+            listId = targetListId,
+            quadrant = targetQuadrant,
+            updatedAt = currentDate
+        )
     }
 
     override suspend fun toggleStepStatus(step: ToDoStep) {

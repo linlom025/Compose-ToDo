@@ -32,6 +32,13 @@ class ListDetailViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
+            environment.getQuadrantDisplayNames()
+                .collect { displayNames ->
+                    setState { copy(quadrantDisplayNames = displayNames) }
+                }
+        }
+
+        viewModelScope.launch {
             if (listId.isNullOrBlank()) {
                 setEffect(ListDetailEffect.ShowCreateListInput)
             } else {

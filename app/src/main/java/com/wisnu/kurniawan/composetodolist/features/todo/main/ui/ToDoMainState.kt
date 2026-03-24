@@ -5,6 +5,8 @@ import androidx.compose.ui.text.input.TextFieldValue
 import com.wisnu.kurniawan.composetodolist.features.todo.main.data.QuadrantTask
 import com.wisnu.kurniawan.composetodolist.foundation.datasource.local.model.ToDoGroupDb
 import com.wisnu.kurniawan.composetodolist.foundation.extension.sortedByTaskForDisplay
+import com.wisnu.kurniawan.composetodolist.foundation.share.SharedTaskDraft
+import com.wisnu.kurniawan.composetodolist.model.QuadrantDisplayNames
 import com.wisnu.kurniawan.composetodolist.model.TaskQuadrant
 import com.wisnu.kurniawan.composetodolist.model.ToDoGroup
 import com.wisnu.kurniawan.composetodolist.model.ToDoList
@@ -16,9 +18,11 @@ import java.time.LocalTime
 @Immutable
 data class ToDoMainState(
     val tasks: List<QuadrantTask> = listOf(),
+    val quadrantDisplayNames: QuadrantDisplayNames = QuadrantDisplayNames.default(),
     val showCompleted: Boolean = false,
     val isCreateDialogVisible: Boolean = false,
     val createQuadrant: TaskQuadrant = TaskQuadrant.fromDbDefault(),
+    val isCreateQuadrantLocked: Boolean = false,
     val createTaskName: TextFieldValue = TextFieldValue(),
     val createDueEnabled: Boolean = false,
     val createDueDate: LocalDate = LocalDate.now(),
@@ -26,6 +30,10 @@ data class ToDoMainState(
     val createNote: TextFieldValue = TextFieldValue(),
     val showCreateDueDatePicker: Boolean = false,
     val showCreateDueTimePicker: Boolean = false,
+    val showClipboardImportDialog: Boolean = false,
+    val pendingClipboardCandidate: SharedTaskDraft? = null,
+    val showClipboardSoftImportHint: Boolean = false,
+    val pendingSoftClipboardCandidate: SharedTaskDraft? = null,
     val showDeleteTaskConfirmDialog: Boolean = false,
     val pendingDeleteTask: ToDoTask? = null,
 ) {

@@ -8,9 +8,11 @@ import java.time.YearMonth
 
 @Immutable
 data class CalendarState(
+    val mode: CalendarMode = CalendarMode.CALENDAR,
     val visibleMonth: YearMonth = YearMonth.now(),
     val selectedDate: LocalDate = LocalDate.now(),
     val tasksByCreatedDate: Map<LocalDate, List<CalendarTaskItem>> = mapOf(),
+    val tasksByCompletedDate: Map<LocalDate, List<CalendarTaskItem>> = mapOf(),
     val selectedDateTasks: List<CalendarTaskItem> = listOf(),
     val showDeleteTaskConfirmDialog: Boolean = false,
     val pendingDeleteTask: ToDoTask? = null,

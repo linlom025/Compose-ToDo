@@ -2,6 +2,8 @@ package com.wisnu.kurniawan.composetodolist.features.todo.step.data
 
 import com.wisnu.kurniawan.composetodolist.foundation.wrapper.DateTimeProvider
 import com.wisnu.kurniawan.composetodolist.foundation.wrapper.IdProvider
+import com.wisnu.kurniawan.composetodolist.model.QuadrantDisplayNames
+import com.wisnu.kurniawan.composetodolist.model.TaskQuadrant
 import com.wisnu.kurniawan.composetodolist.model.ToDoColor
 import com.wisnu.kurniawan.composetodolist.model.ToDoRepeat
 import com.wisnu.kurniawan.composetodolist.model.ToDoStep
@@ -12,10 +14,12 @@ import java.time.LocalDateTime
 interface IStepEnvironment {
     val idProvider: IdProvider
     val dateTimeProvider: DateTimeProvider
-    fun getTask(taskId: String, listId: String): Flow<Pair<ToDoTask, ToDoColor>>
+    fun getTask(taskId: String): Flow<Pair<ToDoTask, ToDoColor>>
+    fun getQuadrantDisplayNames(): Flow<QuadrantDisplayNames>
     suspend fun deleteTask(task: ToDoTask)
     suspend fun toggleTaskStatus(task: ToDoTask)
     suspend fun setRepeatTask(task: ToDoTask, toDoRepeat: ToDoRepeat)
+    suspend fun moveTaskToQuadrant(taskId: String, targetQuadrant: TaskQuadrant)
     suspend fun toggleStepStatus(step: ToDoStep)
     suspend fun createStep(name: String, taskId: String)
     suspend fun deleteStep(step: ToDoStep)

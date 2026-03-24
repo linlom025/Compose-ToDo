@@ -5,12 +5,14 @@ import com.wisnu.foundation.libanalyticsmanager.AnalyticsManager
 import com.wisnu.kurniawan.composetodolist.foundation.datasource.local.model.ToDoGroupDb
 import com.wisnu.kurniawan.composetodolist.foundation.datasource.local.provider.ToDoListProvider
 import com.wisnu.kurniawan.composetodolist.foundation.datasource.local.provider.ToDoTaskProvider
+import com.wisnu.kurniawan.composetodolist.foundation.datasource.preference.provider.AppDisplayNameProvider
 import com.wisnu.kurniawan.composetodolist.foundation.extension.OnResolveDuplicateName
 import com.wisnu.kurniawan.composetodolist.foundation.extension.duplicateNameResolver
 import com.wisnu.kurniawan.composetodolist.foundation.extension.resolveListName
 import com.wisnu.kurniawan.composetodolist.foundation.extension.toggleStatusHandler
 import com.wisnu.kurniawan.composetodolist.foundation.wrapper.DateTimeProvider
 import com.wisnu.kurniawan.composetodolist.foundation.wrapper.IdProvider
+import com.wisnu.kurniawan.composetodolist.model.QuadrantDisplayNames
 import com.wisnu.kurniawan.composetodolist.model.TaskQuadrant
 import com.wisnu.kurniawan.composetodolist.model.ToDoList
 import com.wisnu.kurniawan.composetodolist.model.ToDoTask
@@ -18,16 +20,23 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flatMapConcat
+import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
 @FlowPreview
 class ListDetailEnvironment @Inject constructor(
     private val toDoListProvider: ToDoListProvider,
     private val toDoTaskProvider: ToDoTaskProvider,
+    private val appDisplayNameProvider: AppDisplayNameProvider,
     override val idProvider: IdProvider,
     override val dateTimeProvider: DateTimeProvider,
     private val analyticManager: AnalyticsManager
 ) : IListDetailEnvironment {
+
+    override fun getQuadrantDisplayNames(): Flow<QuadrantDisplayNames> {
+        return appDisplayNameProvider.getDisplayNameConfig()
+            .map { it.quadrantTitles }
+    }
 
     override fun getListWithTasksById(listId: String): Flow<ToDoList> {
         return toDoListProvider.getListWithTasksById(listId)

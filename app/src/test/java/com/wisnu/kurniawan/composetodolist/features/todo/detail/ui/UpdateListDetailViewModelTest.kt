@@ -14,6 +14,7 @@ import com.wisnu.kurniawan.composetodolist.model.TaskQuadrant
 import com.wisnu.kurniawan.composetodolist.model.ToDoColor
 import com.wisnu.kurniawan.composetodolist.model.ToDoList
 import com.wisnu.kurniawan.composetodolist.model.ToDoTask
+import com.wisnu.kurniawan.composetodolist.model.QuadrantDisplayNames
 import com.wisnu.kurniawan.composetodolist.runtime.navigation.ARG_LIST_ID
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -72,6 +73,9 @@ class UpdateListDetailViewModelTest : BaseViewModelTest() {
     private fun buildEnvironment(returnedListWithTasks: ToDoList) = object : IListDetailEnvironment {
         override val idProvider: IdProvider = IdProviderImpl()
         override val dateTimeProvider: DateTimeProvider = DateTimeProviderImpl()
+        override fun getQuadrantDisplayNames(): Flow<QuadrantDisplayNames> {
+            return flow { emit(QuadrantDisplayNames.default()) }
+        }
         override fun getListWithTasksById(listId: String): Flow<ToDoList> {
             return flow {
                 emit(returnedListWithTasks)

@@ -4,10 +4,13 @@ import com.wisnu.foundation.coreloggr.Loggr
 import com.wisnu.kurniawan.composetodolist.features.todo.taskreminder.data.TaskAlarmManager
 import com.wisnu.kurniawan.composetodolist.features.todo.taskreminder.data.TaskNotificationManager
 import com.wisnu.kurniawan.composetodolist.foundation.datasource.local.provider.ToDoTaskProvider
+import com.wisnu.kurniawan.composetodolist.foundation.datasource.preference.provider.AppDisplayNameProvider
+import com.wisnu.kurniawan.composetodolist.foundation.datasource.preference.provider.ReminderPreferenceProvider
 import com.wisnu.kurniawan.composetodolist.foundation.datasource.preference.provider.ThemeProvider
 import com.wisnu.kurniawan.composetodolist.foundation.datasource.preference.provider.UserProvider
-import com.wisnu.kurniawan.composetodolist.foundation.extension.getScheduledDueDate
+import com.wisnu.kurniawan.composetodolist.features.todo.taskreminder.data.buildReminderSchedules
 import com.wisnu.kurniawan.composetodolist.foundation.wrapper.DateTimeProvider
+import com.wisnu.kurniawan.composetodolist.model.AppDisplayNameConfig
 import com.wisnu.kurniawan.composetodolist.model.Theme
 import com.wisnu.kurniawan.composetodolist.model.ToDoTask
 import com.wisnu.kurniawan.composetodolist.model.ToDoTaskDiff
@@ -15,6 +18,7 @@ import com.wisnu.kurniawan.composetodolist.model.User
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import javax.inject.Inject
@@ -23,6 +27,8 @@ class DashboardEnvironment @Inject constructor(
     private val dateTimeProvider: DateTimeProvider,
     private val userProvider: UserProvider,
     private val themeProvider: ThemeProvider,
+    private val reminderPreferenceProvider: ReminderPreferenceProvider,
+    private val appDisplayNameProvider: AppDisplayNameProvider,
     private val toDoTaskProvider: ToDoTaskProvider,
     private val taskAlarmManager: TaskAlarmManager,
     private val notificationManager: TaskNotificationManager
@@ -38,6 +44,18 @@ class DashboardEnvironment @Inject constructor(
 
     override suspend fun setTheme(theme: Theme) {
         themeProvider.setTheme(theme)
+    }
+
+    override suspend fun rescheduleAllReminders() {
+        val scheduledTasks = toDoTaskProvider.getScheduledTasks().first()
+        val leadMinutes = reminderPreferenceProvider.getReminderLeadMinutes().first()
+        val now = dateTimeProvider.now()
+        scheduledTasks.forEach { task ->
+            val schedules = task.buildReminderSchedules(now = now, customLeadMinutes = leadMinutes)
+            Loggr.debug("AlarmFlow") { "Bootstrap reschedule taskId=${task.id}, schedules=$schedules" }
+            taskAlarmManager.cancelTaskAlarms(task)
+            taskAlarmManager.scheduleTaskAlarms(task, schedules)
+        }
     }
 
     // TODO e2e
@@ -58,25 +76,47 @@ class DashboardEnvironment @Inject constructor(
             }
             .drop(1) // Skip initial value
             .onEach { todoTaskDiff ->
+                val leadMinutes = reminderPreferenceProvider.getReminderLeadMinutes().first()
+                val now = dateTimeProvider.now()
                 todoTaskDiff.addedTask.forEach {
                     Loggr.debug("AlarmFlow") { "Added task $it" }
 
-                    taskAlarmManager.scheduleTaskAlarm(it.value, it.value.getScheduledDueDate(dateTimeProvider.now()))
+                    taskAlarmManager.cancelTaskAlarms(it.value)
+                    taskAlarmManager.scheduleTaskAlarms(
+                        it.value,
+                        it.value.buildReminderSchedules(now = now, customLeadMinutes = leadMinutes)
+                    )
                 }
 
                 todoTaskDiff.modifiedTask.forEach {
                     Loggr.debug("AlarmFlow") { "Changed task $it" }
 
-                    taskAlarmManager.scheduleTaskAlarm(it.value, it.value.getScheduledDueDate(dateTimeProvider.now()))
+                    taskAlarmManager.cancelTaskAlarms(it.value)
+                    taskAlarmManager.scheduleTaskAlarms(
+                        it.value,
+                        it.value.buildReminderSchedules(now = now, customLeadMinutes = leadMinutes)
+                    )
                 }
 
                 todoTaskDiff.deletedTask.forEach {
                     Loggr.debug("AlarmFlow") { "Deleted task $it" }
 
-                    taskAlarmManager.cancelTaskAlarm(it.value)
+                    taskAlarmManager.cancelTaskAlarms(it.value)
                     notificationManager.dismiss(it.value)
                 }
             }
+    }
+
+    override fun getDisplayNameConfig(): Flow<AppDisplayNameConfig> {
+        return appDisplayNameProvider.getDisplayNameConfig()
+    }
+
+    override suspend fun setDisplayNameConfig(config: AppDisplayNameConfig) {
+        appDisplayNameProvider.setDisplayNameConfig(config)
+    }
+
+    override suspend fun resetDisplayNameConfig() {
+        appDisplayNameProvider.resetDefault()
     }
 
 }

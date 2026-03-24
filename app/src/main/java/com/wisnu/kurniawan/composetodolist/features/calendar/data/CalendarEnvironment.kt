@@ -4,6 +4,7 @@ import com.wisnu.kurniawan.composetodolist.foundation.datasource.local.provider.
 import com.wisnu.kurniawan.composetodolist.foundation.datasource.local.provider.ToDoTaskProvider
 import com.wisnu.kurniawan.composetodolist.foundation.extension.toggleStatusHandler
 import com.wisnu.kurniawan.composetodolist.foundation.wrapper.DateTimeProvider
+import com.wisnu.kurniawan.composetodolist.model.ToDoStatus
 import com.wisnu.kurniawan.composetodolist.model.ToDoTask
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -16,6 +17,19 @@ class CalendarEnvironment @Inject constructor(
 ) : ICalendarEnvironment {
 
     override fun loadTasksByCreatedDate(): Flow<List<CalendarTaskItem>> {
+        return loadTaskItems()
+    }
+
+    override fun loadTasksByCompletedDate(): Flow<List<CalendarTaskItem>> {
+        return loadTaskItems()
+            .map { taskItems ->
+                taskItems.filter { item ->
+                    item.task.status == ToDoStatus.COMPLETE && item.task.completedAt != null
+                }
+            }
+    }
+
+    private fun loadTaskItems(): Flow<List<CalendarTaskItem>> {
         return toDoListProvider.getListWithTasks()
             .map { lists ->
                 lists.flatMap { list ->

@@ -36,6 +36,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -58,6 +59,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.wisnu.kurniawan.composetodolist.R
 import com.wisnu.kurniawan.composetodolist.foundation.extension.displayable
@@ -87,6 +89,8 @@ import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.dueDateDisplay
 import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.noteUpdatedAtDisplayable
 import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.timeDisplayable
 import com.wisnu.kurniawan.composetodolist.foundation.viewmodel.HandleEffect
+import com.wisnu.kurniawan.composetodolist.model.QuadrantDisplayNames
+import com.wisnu.kurniawan.composetodolist.model.TaskQuadrant
 import com.wisnu.kurniawan.composetodolist.model.ToDoStatus
 import com.wisnu.kurniawan.composetodolist.model.ToDoStep
 import com.wisnu.kurniawan.composetodolist.model.ToDoTask
@@ -128,6 +132,8 @@ fun StepScreen(
 
         showDueTimePicker = state.showDueTimePicker,
         dueTimeInitial = state.dueTimeInitial,
+        quadrantDisplayNames = state.quadrantDisplayNames,
+        showQuadrantDialog = state.showQuadrantDialog,
 
         onClickTaskName = onClickTaskName,
         onClickTaskStatus = { viewModel.dispatch(StepAction.TaskAction.OnToggleStatus) },
@@ -174,6 +180,9 @@ fun StepScreen(
             viewModel.dispatch(StepAction.NoteAction.RequestExitWithUnsaved(NoteExitTarget.SCREEN))
         },
         onClickRepeatItem = onClickRepeatItem,
+        onClickTaskQuadrantItem = { viewModel.dispatch(StepAction.TaskAction.OpenQuadrantDialog) },
+        onSelectTaskQuadrant = { viewModel.dispatch(StepAction.TaskAction.SelectQuadrant(it)) },
+        onDismissTaskQuadrantDialog = { viewModel.dispatch(StepAction.TaskAction.DismissQuadrantDialog) },
         isEditingNote = state.isEditingNote,
         editNote = state.editNote,
         onClickEditNote = { viewModel.dispatch(StepAction.NoteAction.StartEdit) },
@@ -200,6 +209,8 @@ private fun StepScreen(
 
     showDueTimePicker: Boolean,
     dueTimeInitial: LocalTime,
+    quadrantDisplayNames: QuadrantDisplayNames,
+    showQuadrantDialog: Boolean,
 
     onClickTaskName: () -> Unit,
     onClickTaskStatus: () -> Unit,
@@ -223,6 +234,9 @@ private fun StepScreen(
 
     onRequestBack: () -> Unit,
     onClickRepeatItem: () -> Unit,
+    onClickTaskQuadrantItem: () -> Unit,
+    onSelectTaskQuadrant: (TaskQuadrant) -> Unit,
+    onDismissTaskQuadrantDialog: () -> Unit,
     isEditingNote: Boolean,
     editNote: TextFieldValue,
     onClickEditNote: () -> Unit,
@@ -260,6 +274,8 @@ private fun StepScreen(
 
             showDueTimePicker = showDueTimePicker,
             dueTimeInitial = dueTimeInitial,
+            quadrantDisplayNames = quadrantDisplayNames,
+            showQuadrantDialog = showQuadrantDialog,
 
             onClickCreateStep = onClickCreateStep,
             onClickStep = onClickStep,
@@ -277,6 +293,9 @@ private fun StepScreen(
             onCheckDueTimeItemChange = onCheckDueTimeItemChange,
 
             onClickRepeatItem = onClickRepeatItem,
+            onClickTaskQuadrantItem = onClickTaskQuadrantItem,
+            onSelectTaskQuadrant = onSelectTaskQuadrant,
+            onDismissTaskQuadrantDialog = onDismissTaskQuadrantDialog,
             isEditingNote = isEditingNote,
             editNote = editNote,
             onClickEditNote = onClickEditNote,
@@ -428,6 +447,8 @@ private fun StepContent(
 
     showDueTimePicker: Boolean,
     dueTimeInitial: LocalTime,
+    quadrantDisplayNames: QuadrantDisplayNames,
+    showQuadrantDialog: Boolean,
 
     onClickStep: (ToDoStep) -> Unit,
     onClickStepStatus: (ToDoStep) -> Unit,
@@ -445,6 +466,9 @@ private fun StepContent(
     onCheckDueTimeItemChange: (Boolean) -> Unit,
 
     onClickRepeatItem: () -> Unit,
+    onClickTaskQuadrantItem: () -> Unit,
+    onSelectTaskQuadrant: (TaskQuadrant) -> Unit,
+    onDismissTaskQuadrantDialog: () -> Unit,
     isEditingNote: Boolean,
     editNote: TextFieldValue,
     onClickEditNote: () -> Unit,
@@ -478,6 +502,15 @@ private fun StepContent(
             onConfirm = { date ->
                 onClickDueDateItemSelect(date)
             }
+        )
+    }
+
+    if (showQuadrantDialog) {
+        QuadrantPickerDialog(
+            selectedQuadrant = task.quadrant,
+            displayNames = quadrantDisplayNames,
+            onDismiss = onDismissTaskQuadrantDialog,
+            onSelect = onSelectTaskQuadrant
         )
     }
 
@@ -590,6 +623,30 @@ private fun StepContent(
 
                 Spacer(Modifier.height(16.dp))
             }
+
+            ActionCell(
+                title = stringResource(R.string.todo_task_belong_list),
+                shape = RoundedCornerShape(size = MediumRadius),
+                iconBgColor = CommonGrey,
+                leftIcon = Icons.Rounded.Repeat,
+                showDivider = false,
+                onClick = onClickTaskQuadrantItem,
+                trailing = {
+                    Row {
+                        Text(
+                            text = quadrantDisplayNames.titleOf(task.quadrant),
+                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Normal),
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = AlphaDisabled)
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        PgIcon(
+                            imageVector = Icons.Rounded.ChevronRight,
+                            tint = LocalContentColor.current.copy(alpha = AlphaDisabled)
+                        )
+                    }
+                }
+            )
+            Spacer(Modifier.height(16.dp))
         }
 
         item {
@@ -856,6 +913,64 @@ private fun StepFooter(
             style = MaterialTheme.typography.labelMedium,
             modifier = Modifier.align(Alignment.Center)
         )
+    }
+}
+
+@Composable
+private fun QuadrantPickerDialog(
+    selectedQuadrant: TaskQuadrant,
+    displayNames: QuadrantDisplayNames,
+    onDismiss: () -> Unit,
+    onSelect: (TaskQuadrant) -> Unit
+) {
+    val quadrants = remember {
+        listOf(TaskQuadrant.Q1, TaskQuadrant.Q2, TaskQuadrant.Q3, TaskQuadrant.Q4)
+    }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.BottomCenter
+        ) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 16.dp),
+                shape = MaterialTheme.shapes.large,
+                tonalElevation = 4.dp,
+                color = MaterialTheme.colorScheme.surface
+            ) {
+                Column(modifier = Modifier.padding(vertical = 12.dp)) {
+                    Text(
+                        text = stringResource(R.string.todo_task_belong_list_select_title),
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
+                    quadrants.forEach { quadrant ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onSelect(quadrant) }
+                                .padding(horizontal = 16.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = displayNames.titleOf(quadrant),
+                                style = MaterialTheme.typography.titleSmall,
+                                modifier = Modifier.weight(1f)
+                            )
+                            RadioButton(
+                                selected = selectedQuadrant == quadrant,
+                                onClick = { onSelect(quadrant) }
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 

@@ -7,7 +7,9 @@
 
     <application
         android:name="com.wisnu.kurniawan.composetodolist.runtime.ComposeToDoListApp"
-        android:allowBackup="true"
+        android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="${APP_NAME}"
         android:roundIcon="@mipmap/ic_launcher"
@@ -41,7 +43,7 @@
 
         <receiver
             android:name=".features.todo.taskreminder.ui.TaskBroadcastReceiver"
-            android:exported="false">
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
 

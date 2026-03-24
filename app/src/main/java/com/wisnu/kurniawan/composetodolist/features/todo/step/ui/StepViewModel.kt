@@ -9,7 +9,6 @@ import com.wisnu.kurniawan.composetodolist.features.todo.detail.ui.select
 import com.wisnu.kurniawan.composetodolist.features.todo.step.data.IStepEnvironment
 import com.wisnu.kurniawan.composetodolist.foundation.extension.DEFAULT_TASK_LOCAL_TIME
 import com.wisnu.kurniawan.composetodolist.model.ToDoTask
-import com.wisnu.kurniawan.composetodolist.runtime.navigation.ARG_LIST_ID
 import com.wisnu.kurniawan.composetodolist.runtime.navigation.ARG_TASK_ID
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
@@ -26,16 +25,25 @@ class StepViewModel @Inject constructor(
     StatefulViewModel<StepState, StepEffect, StepAction, IStepEnvironment>(StepState(), stepEnvironment) {
 
     private val taskId = savedStateHandle.get<String>(ARG_TASK_ID)
-    private val listId = savedStateHandle.get<String>(ARG_LIST_ID)
 
     init {
+        observeQuadrantDisplayNames()
         initTask()
+    }
+
+    private fun observeQuadrantDisplayNames() {
+        viewModelScope.launch {
+            environment.getQuadrantDisplayNames()
+                .collect { displayNames ->
+                    setState { copy(quadrantDisplayNames = displayNames) }
+                }
+        }
     }
 
     private fun initTask() {
         viewModelScope.launch {
-            if (taskId != null && listId != null) {
-                environment.getTask(taskId, listId)
+            if (taskId != null) {
+                environment.getTask(taskId)
                     .collect { (task, color) ->
                         setState {
                             copy(
@@ -177,6 +185,30 @@ class StepViewModel @Inject constructor(
                     } else {
                         val newDateTime = state.value.task.updatedTime(environment.dateTimeProvider.now().toLocalDate(), DEFAULT_TASK_LOCAL_TIME)
                         environment.resetTaskTime(newDateTime, state.value.task.id)
+                    }
+                }
+            }
+
+            StepAction.TaskAction.OpenQuadrantDialog -> {
+                viewModelScope.launch {
+                    setState { copy(showQuadrantDialog = true) }
+                }
+            }
+
+            StepAction.TaskAction.DismissQuadrantDialog -> {
+                viewModelScope.launch {
+                    setState { copy(showQuadrantDialog = false) }
+                }
+            }
+
+            is StepAction.TaskAction.SelectQuadrant -> {
+                viewModelScope.launch {
+                    val currentTask = state.value.task
+                    if (currentTask.quadrant == action.quadrant) {
+                        setState { copy(showQuadrantDialog = false) }
+                    } else {
+                        environment.moveTaskToQuadrant(currentTask.id, action.quadrant)
+                        setState { copy(showQuadrantDialog = false) }
                     }
                 }
             }

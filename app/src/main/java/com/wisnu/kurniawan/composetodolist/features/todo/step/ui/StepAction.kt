@@ -1,6 +1,7 @@
 package com.wisnu.kurniawan.composetodolist.features.todo.step.ui
 
 import androidx.compose.ui.text.input.TextFieldValue
+import com.wisnu.kurniawan.composetodolist.model.TaskQuadrant
 import com.wisnu.kurniawan.composetodolist.model.ToDoStep
 import java.time.LocalDate
 import java.time.LocalTime
@@ -28,6 +29,9 @@ sealed class StepAction {
         object EditDueTime : TaskAction()
         object DismissDueTimePicker : TaskAction()
         data class SelectDueTime(val time: LocalTime) : TaskAction()
+        object OpenQuadrantDialog : TaskAction()
+        object DismissQuadrantDialog : TaskAction()
+        data class SelectQuadrant(val quadrant: TaskQuadrant) : TaskAction()
     }
 
     sealed class StepItemAction : StepAction() {

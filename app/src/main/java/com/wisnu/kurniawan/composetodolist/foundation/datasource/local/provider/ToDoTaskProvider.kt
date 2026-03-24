@@ -7,6 +7,7 @@ import com.wisnu.kurniawan.composetodolist.foundation.datasource.local.mapper.to
 import com.wisnu.kurniawan.composetodolist.foundation.datasource.local.mapper.toToDoList
 import com.wisnu.kurniawan.composetodolist.foundation.di.DiName
 import com.wisnu.kurniawan.composetodolist.model.TaskWithList
+import com.wisnu.kurniawan.composetodolist.model.TaskQuadrant
 import com.wisnu.kurniawan.composetodolist.model.ToDoRepeat
 import com.wisnu.kurniawan.composetodolist.model.ToDoStatus
 import com.wisnu.kurniawan.composetodolist.model.ToDoTask
@@ -144,6 +145,22 @@ class ToDoTaskProvider @Inject constructor(
     suspend fun updateTaskList(ids: List<String>, listId: String, updatedAt: LocalDateTime) {
         withContext(dispatcher) {
             toDoTaskWriteDao.updateTaskList(ids, listId, updatedAt)
+        }
+    }
+
+    suspend fun updateTaskListAndQuadrant(
+        id: String,
+        listId: String,
+        quadrant: TaskQuadrant,
+        updatedAt: LocalDateTime
+    ) {
+        withContext(dispatcher) {
+            toDoTaskWriteDao.updateTaskListAndQuadrant(
+                id = id,
+                listId = listId,
+                quadrant = quadrant.dbValue,
+                updatedAt = updatedAt
+            )
         }
     }
 

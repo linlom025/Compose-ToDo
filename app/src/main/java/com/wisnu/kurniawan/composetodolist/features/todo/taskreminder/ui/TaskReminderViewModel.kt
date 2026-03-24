@@ -1,42 +1,47 @@
 package com.wisnu.kurniawan.composetodolist.features.todo.taskreminder.ui
 
+import android.util.Log
 import com.wisnu.kurniawan.composetodolist.features.todo.taskreminder.data.ITaskReminderEnvironment
-import kotlinx.coroutines.DelicateCoroutinesApi
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 
-@OptIn(DelicateCoroutinesApi::class)
 @Singleton
 class TaskReminderViewModel @Inject constructor(
     private val environment: ITaskReminderEnvironment,
 ) {
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-    // TODO e2e
     fun dispatch(action: TaskReminderAction) {
         when (action) {
             is TaskReminderAction.AlarmShow -> {
-                GlobalScope.launch {
-                    environment.notifyNotification(action.taskId)
+                launchSafely("AlarmShow") {
+                    environment.notifyNotification(
+                        taskId = action.taskId,
+                        reminderKind = action.reminderKind,
+                        leadMinutes = action.leadMinutes
+                    )
                         .collect()
                 }
             }
             TaskReminderAction.AppBootCompleted -> {
-                GlobalScope.launch {
+                launchSafely("AppBootCompleted") {
                     environment.restartAllReminder()
                         .collect()
                 }
             }
             is TaskReminderAction.NotificationCompleted -> {
-                GlobalScope.launch {
+                launchSafely("NotificationCompleted") {
                     environment.completeReminder(action.taskId)
                         .collect()
                 }
             }
             is TaskReminderAction.NotificationSnooze -> {
-                GlobalScope.launch {
+                launchSafely("NotificationSnooze") {
                     environment.snoozeReminder(action.taskId)
                         .collect()
                 }
@@ -44,4 +49,13 @@ class TaskReminderViewModel @Inject constructor(
         }
     }
 
+    private fun launchSafely(tag: String, block: suspend () -> Unit) {
+        scope.launch {
+            runCatching {
+                block()
+            }.onFailure { throwable ->
+                Log.e("AlarmFlow", "提醒处理失败：$tag", throwable)
+            }
+        }
+    }
 }

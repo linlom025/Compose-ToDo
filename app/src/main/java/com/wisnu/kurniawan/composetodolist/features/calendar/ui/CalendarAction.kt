@@ -5,6 +5,7 @@ import java.time.LocalDate
 import java.time.YearMonth
 
 sealed class CalendarAction {
+    data class SwitchMode(val mode: CalendarMode) : CalendarAction()
     object PreviousMonth : CalendarAction()
     object NextMonth : CalendarAction()
     data class VisibleMonthChanged(val month: YearMonth) : CalendarAction()

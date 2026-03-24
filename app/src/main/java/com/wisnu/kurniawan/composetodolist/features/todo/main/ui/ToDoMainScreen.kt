@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.CheckCircle
@@ -23,13 +24,17 @@ import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextDecoration
@@ -58,8 +63,11 @@ import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.PgIconButtonVa
 import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.PgSecondaryButton
 import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.PgDatePickerDialog
 import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.PgTimePickerDialog
+import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.LocalPgSnackbarHostState
 import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.PgToDoItemCell
+import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.PgQuadrantSelectorChip
 import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.itemInfoDisplayable
+import com.wisnu.kurniawan.composetodolist.model.QuadrantDisplayNames
 import com.wisnu.kurniawan.composetodolist.model.TaskQuadrant
 import com.wisnu.kurniawan.composetodolist.model.ToDoStatus
 import com.wisnu.kurniawan.composetodolist.model.ToDoTask
@@ -71,6 +79,7 @@ fun ToDoMainScreen(
     state: ToDoMainState,
     onOpenCreateDialog: (TaskQuadrant) -> Unit,
     onCreateTaskNameChange: (TextFieldValue) -> Unit,
+    onCreateQuadrantChange: (TaskQuadrant) -> Unit,
     onCreateDueEnabledChange: (Boolean) -> Unit,
     onOpenCreateDueDatePicker: () -> Unit,
     onDismissCreateDueDatePicker: () -> Unit,
@@ -86,7 +95,15 @@ fun ToDoMainScreen(
     onTaskSwipeToDelete: (ToDoTask) -> Unit,
     onConfirmDeleteTask: () -> Unit,
     onDismissDeleteTask: () -> Unit,
+    onQuadrantTitleLongClick: (TaskQuadrant) -> Unit,
+    onConfirmClipboardImport: () -> Unit,
+    onDismissClipboardImport: () -> Unit,
+    onConfirmClipboardSoftImport: () -> Unit,
+    onDismissClipboardSoftImport: () -> Unit,
 ) {
+    val snackbarHostState = LocalPgSnackbarHostState.current
+    val context = LocalContext.current
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -101,21 +118,25 @@ fun ToDoMainScreen(
             QuadrantCard(
                 modifier = Modifier.weight(1f),
                 quadrant = TaskQuadrant.Q1,
+                quadrantTitle = state.quadrantDisplayNames.titleOf(TaskQuadrant.Q1),
                 tasks = state.quadrants[TaskQuadrant.Q1].orEmpty(),
                 onOpenCreateDialog = onOpenCreateDialog,
                 onTaskClick = onTaskClick,
                 onTaskStatusClick = onTaskStatusClick,
-                onTaskSwipeToDelete = onTaskSwipeToDelete
+                onTaskSwipeToDelete = onTaskSwipeToDelete,
+                onQuadrantTitleLongClick = onQuadrantTitleLongClick
             )
 
             QuadrantCard(
                 modifier = Modifier.weight(1f),
                 quadrant = TaskQuadrant.Q2,
+                quadrantTitle = state.quadrantDisplayNames.titleOf(TaskQuadrant.Q2),
                 tasks = state.quadrants[TaskQuadrant.Q2].orEmpty(),
                 onOpenCreateDialog = onOpenCreateDialog,
                 onTaskClick = onTaskClick,
                 onTaskStatusClick = onTaskStatusClick,
-                onTaskSwipeToDelete = onTaskSwipeToDelete
+                onTaskSwipeToDelete = onTaskSwipeToDelete,
+                onQuadrantTitleLongClick = onQuadrantTitleLongClick
             )
         }
 
@@ -130,21 +151,25 @@ fun ToDoMainScreen(
             QuadrantCard(
                 modifier = Modifier.weight(1f),
                 quadrant = TaskQuadrant.Q3,
+                quadrantTitle = state.quadrantDisplayNames.titleOf(TaskQuadrant.Q3),
                 tasks = state.quadrants[TaskQuadrant.Q3].orEmpty(),
                 onOpenCreateDialog = onOpenCreateDialog,
                 onTaskClick = onTaskClick,
                 onTaskStatusClick = onTaskStatusClick,
-                onTaskSwipeToDelete = onTaskSwipeToDelete
+                onTaskSwipeToDelete = onTaskSwipeToDelete,
+                onQuadrantTitleLongClick = onQuadrantTitleLongClick
             )
 
             QuadrantCard(
                 modifier = Modifier.weight(1f),
                 quadrant = TaskQuadrant.Q4,
+                quadrantTitle = state.quadrantDisplayNames.titleOf(TaskQuadrant.Q4),
                 tasks = state.quadrants[TaskQuadrant.Q4].orEmpty(),
                 onOpenCreateDialog = onOpenCreateDialog,
                 onTaskClick = onTaskClick,
                 onTaskStatusClick = onTaskStatusClick,
-                onTaskSwipeToDelete = onTaskSwipeToDelete
+                onTaskSwipeToDelete = onTaskSwipeToDelete,
+                onQuadrantTitleLongClick = onQuadrantTitleLongClick
             )
         }
     }
@@ -153,6 +178,7 @@ fun ToDoMainScreen(
         CreateTaskDialog(
             state = state,
             onNameChange = onCreateTaskNameChange,
+            onQuadrantChange = onCreateQuadrantChange,
             onDueEnabledChange = onCreateDueEnabledChange,
             onOpenDueDatePicker = onOpenCreateDueDatePicker,
             onDismissDueDatePicker = onDismissCreateDueDatePicker,
@@ -162,7 +188,8 @@ fun ToDoMainScreen(
             onSelectDueTime = onSelectCreateDueTime,
             onNoteChange = onCreateNoteChange,
             onDismiss = onDismissCreateDialog,
-            onConfirm = onConfirmCreate
+            onConfirm = onConfirmCreate,
+            quadrantDisplayNames = state.quadrantDisplayNames
         )
     }
 
@@ -172,17 +199,45 @@ fun ToDoMainScreen(
             onDismiss = onDismissDeleteTask
         )
     }
+
+    if (state.showClipboardImportDialog) {
+        ClipboardImportDialog(
+            title = state.pendingClipboardCandidate?.title.orEmpty(),
+            onConfirm = onConfirmClipboardImport,
+            onDismiss = onDismissClipboardImport
+        )
+    }
+
+    LaunchedEffect(state.showClipboardSoftImportHint, state.pendingSoftClipboardCandidate?.id) {
+        val candidate = state.pendingSoftClipboardCandidate ?: return@LaunchedEffect
+        val host = snackbarHostState ?: return@LaunchedEffect
+        if (!state.showClipboardSoftImportHint) return@LaunchedEffect
+
+        val result = host.showSnackbar(
+            message = context.getString(R.string.todo_clipboard_soft_import_message, candidate.title),
+            actionLabel = context.getString(R.string.todo_clipboard_soft_import_action),
+            duration = SnackbarDuration.Short
+        )
+
+        if (result == SnackbarResult.ActionPerformed) {
+            onConfirmClipboardSoftImport()
+        } else {
+            onDismissClipboardSoftImport()
+        }
+    }
 }
 
 @Composable
 private fun QuadrantCard(
     modifier: Modifier,
     quadrant: TaskQuadrant,
+    quadrantTitle: String,
     tasks: List<QuadrantTask>,
     onOpenCreateDialog: (TaskQuadrant) -> Unit,
     onTaskClick: (QuadrantTask) -> Unit,
     onTaskStatusClick: (ToDoTask) -> Unit,
-    onTaskSwipeToDelete: (ToDoTask) -> Unit
+    onTaskSwipeToDelete: (ToDoTask) -> Unit,
+    onQuadrantTitleLongClick: (TaskQuadrant) -> Unit,
 ) {
     val resources = LocalContext.current.resources
     val titleColor = quadrant.toColor()
@@ -200,9 +255,14 @@ private fun QuadrantCard(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = quadrant.toTitle(),
+                    text = quadrantTitle,
                     style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Medium),
-                    color = titleColor
+                    color = titleColor,
+                    modifier = Modifier.pointerInput(quadrant) {
+                        detectTapGestures(
+                            onLongPress = { onQuadrantTitleLongClick(quadrant) }
+                        )
+                    }
                 )
                 TinyAddButton(onClick = { onOpenCreateDialog(quadrant) })
             }
@@ -272,6 +332,7 @@ private fun TinyAddButton(
 private fun CreateTaskDialog(
     state: ToDoMainState,
     onNameChange: (TextFieldValue) -> Unit,
+    onQuadrantChange: (TaskQuadrant) -> Unit,
     onDueEnabledChange: (Boolean) -> Unit,
     onOpenDueDatePicker: () -> Unit,
     onDismissDueDatePicker: () -> Unit,
@@ -282,6 +343,7 @@ private fun CreateTaskDialog(
     onNoteChange: (TextFieldValue) -> Unit,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
+    quadrantDisplayNames: QuadrantDisplayNames,
 ) {
     if (state.showCreateDueDatePicker) {
         PgDatePickerDialog(
@@ -320,9 +382,17 @@ private fun CreateTaskDialog(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(
-                    text = state.createQuadrant.toTitle(),
+                    text = state.createQuadrant.toTitle(quadrantDisplayNames),
                     style = MaterialTheme.typography.titleSmall
                 )
+
+                if (!state.isCreateQuadrantLocked) {
+                    CreateQuadrantSelector(
+                        selectedQuadrant = state.createQuadrant,
+                        displayNames = quadrantDisplayNames,
+                        onSelectQuadrant = onQuadrantChange
+                    )
+                }
 
                 OutlinedTextField(
                     value = state.createTaskName,
@@ -425,6 +495,45 @@ private fun CreateTaskDialog(
 }
 
 @Composable
+private fun CreateQuadrantSelector(
+    selectedQuadrant: TaskQuadrant,
+    displayNames: QuadrantDisplayNames,
+    onSelectQuadrant: (TaskQuadrant) -> Unit,
+) {
+    val quadrants = listOf(
+        TaskQuadrant.Q1,
+        TaskQuadrant.Q2,
+        TaskQuadrant.Q3,
+        TaskQuadrant.Q4
+    )
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(
+            text = stringResource(R.string.todo_quadrant_selector_title),
+            style = MaterialTheme.typography.titleSmall
+        )
+        quadrants.chunked(2).forEach { row ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                row.forEach { quadrant ->
+                    PgQuadrantSelectorChip(
+                        modifier = Modifier.weight(1f),
+                        selected = selectedQuadrant == quadrant,
+                        onClick = { onSelectQuadrant(quadrant) },
+                        text = quadrant.toTitle(displayNames)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun CompactMetaButton(
     modifier: Modifier = Modifier,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
@@ -449,13 +558,8 @@ private fun CompactMetaButton(
     }
 }
 
-private fun TaskQuadrant.toTitle(): String {
-    return when (this) {
-        TaskQuadrant.Q1 -> "\u91CD\u8981\u4E14\u7D27\u6025"
-        TaskQuadrant.Q2 -> "\u91CD\u8981\u4E0D\u7D27\u6025"
-        TaskQuadrant.Q3 -> "\u4E0D\u91CD\u8981\u4F46\u7D27\u6025"
-        TaskQuadrant.Q4 -> "\u4E0D\u91CD\u8981\u4E0D\u7D27\u6025"
-    }
+private fun TaskQuadrant.toTitle(displayNames: QuadrantDisplayNames): String {
+    return displayNames.titleOf(this)
 }
 
 private fun TaskQuadrant.toColor(): Color {
@@ -464,5 +568,55 @@ private fun TaskQuadrant.toColor(): Color {
         TaskQuadrant.Q2 -> ListBlue
         TaskQuadrant.Q3 -> ListOrange
         TaskQuadrant.Q4 -> ListGreen
+    }
+}
+
+@Composable
+private fun ClipboardImportDialog(
+    title: String,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = MaterialTheme.shapes.large,
+            tonalElevation = 6.dp,
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.todo_clipboard_import_title),
+                    style = MaterialTheme.typography.titleSmall
+                )
+                Text(
+                    text = stringResource(R.string.todo_clipboard_import_message, title),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    PgSecondaryButton(
+                        modifier = Modifier.weight(1f),
+                        onClick = onDismiss
+                    ) {
+                        Text(
+                            text = stringResource(R.string.todo_clipboard_import_ignore),
+                            color = MaterialTheme.colorScheme.onSecondary
+                        )
+                    }
+
+                    PgButton(
+                        modifier = Modifier.weight(1f),
+                        onClick = onConfirm
+                    ) {
+                        Text(text = stringResource(R.string.todo_clipboard_import_confirm))
+                    }
+                }
+            }
+        }
     }
 }

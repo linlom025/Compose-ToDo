@@ -9,6 +9,8 @@ import com.wisnu.kurniawan.composetodolist.features.todo.step.data.IStepEnvironm
 import com.wisnu.kurniawan.composetodolist.foundation.wrapper.DateTimeProvider
 import com.wisnu.kurniawan.composetodolist.foundation.wrapper.IdProvider
 import com.wisnu.kurniawan.composetodolist.foundation.wrapper.IdProviderImpl
+import com.wisnu.kurniawan.composetodolist.model.QuadrantDisplayNames
+import com.wisnu.kurniawan.composetodolist.model.TaskQuadrant
 import com.wisnu.kurniawan.composetodolist.model.ToDoColor
 import com.wisnu.kurniawan.composetodolist.model.ToDoRepeat
 import com.wisnu.kurniawan.composetodolist.model.ToDoStatus
@@ -139,6 +141,39 @@ class StepViewModelTest : BaseViewModelTest() {
         assertFalse(viewModel.state.value.isEditingNote)
     }
 
+    @Test
+    fun selectQuadrant_whenDifferent_updatesTaskQuadrant() = runTest {
+        val environment = FakeStepEnvironment(
+            task(note = "", quadrant = TaskQuadrant.Q1)
+        )
+        val viewModel = buildViewModel(environment)
+        advanceUntilIdle()
+
+        viewModel.dispatch(StepAction.TaskAction.SelectQuadrant(TaskQuadrant.Q4))
+        advanceUntilIdle()
+
+        assertEquals(listOf(TaskQuadrant.Q4), environment.movedQuadrants)
+    }
+
+    @Test
+    fun selectQuadrant_whenSame_noopAndCloseDialog() = runTest {
+        val environment = FakeStepEnvironment(
+            task(note = "", quadrant = TaskQuadrant.Q2)
+        )
+        val viewModel = buildViewModel(environment)
+        advanceUntilIdle()
+
+        viewModel.dispatch(StepAction.TaskAction.OpenQuadrantDialog)
+        advanceUntilIdle()
+        assertTrue(viewModel.state.value.showQuadrantDialog)
+
+        viewModel.dispatch(StepAction.TaskAction.SelectQuadrant(TaskQuadrant.Q2))
+        advanceUntilIdle()
+
+        assertTrue(environment.movedQuadrants.isEmpty())
+        assertFalse(viewModel.state.value.showQuadrantDialog)
+    }
+
     private fun buildViewModel(environment: FakeStepEnvironment): StepViewModel {
         val savedStateHandle = SavedStateHandle().apply {
             set(ARG_TASK_ID, "task-id")
@@ -149,12 +184,14 @@ class StepViewModelTest : BaseViewModelTest() {
 
     private fun task(
         note: String,
+        quadrant: TaskQuadrant = TaskQuadrant.fromDbDefault(),
         createdAt: LocalDateTime = DateFactory.constantDate
     ): ToDoTask {
         return ToDoTask(
             id = "task-id",
             name = "task-name",
             status = ToDoStatus.IN_PROGRESS,
+            quadrant = quadrant,
             note = note,
             noteUpdatedAt = if (note.isBlank()) null else createdAt,
             createdAt = createdAt,
@@ -172,14 +209,23 @@ class StepViewModelTest : BaseViewModelTest() {
 
         private val taskFlow = MutableStateFlow(initialTask)
         val updatedNotes = mutableListOf<String>()
+        val movedQuadrants = mutableListOf<TaskQuadrant>()
 
-        override fun getTask(taskId: String, listId: String): Flow<Pair<ToDoTask, ToDoColor>> {
+        override fun getTask(taskId: String): Flow<Pair<ToDoTask, ToDoColor>> {
             return taskFlow.map { task -> task to ToDoColor.BLUE }
+        }
+
+        override fun getQuadrantDisplayNames(): Flow<QuadrantDisplayNames> {
+            return MutableStateFlow(QuadrantDisplayNames.default())
         }
 
         override suspend fun deleteTask(task: ToDoTask) = Unit
         override suspend fun toggleTaskStatus(task: ToDoTask) = Unit
         override suspend fun setRepeatTask(task: ToDoTask, toDoRepeat: ToDoRepeat) = Unit
+        override suspend fun moveTaskToQuadrant(taskId: String, targetQuadrant: TaskQuadrant) {
+            movedQuadrants.add(targetQuadrant)
+            taskFlow.value = taskFlow.value.copy(quadrant = targetQuadrant)
+        }
         override suspend fun toggleStepStatus(step: ToDoStep) = Unit
         override suspend fun createStep(name: String, taskId: String) = Unit
         override suspend fun deleteStep(step: ToDoStep) = Unit

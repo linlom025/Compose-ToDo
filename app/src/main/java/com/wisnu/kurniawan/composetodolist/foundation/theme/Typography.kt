@@ -5,6 +5,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
 import com.wisnu.kurniawan.composetodolist.R
 
@@ -96,3 +97,30 @@ val Typography = Typography(
         fontSize = 9.sp,
     )
 )
+
+fun scaledTypography(scaleFactor: Float): Typography {
+    if (scaleFactor == 1f) return Typography
+
+    fun TextStyle.scaled() = copy(
+        fontSize = fontSize * scaleFactor,
+        lineHeight = if (lineHeight != TextUnit.Unspecified) lineHeight * scaleFactor else lineHeight
+    )
+
+    return Typography.copy(
+        displayLarge = Typography.displayLarge.scaled(),
+        displayMedium = Typography.displayMedium.scaled(),
+        displaySmall = Typography.displaySmall.scaled(),
+        headlineLarge = Typography.headlineLarge.scaled(),
+        headlineMedium = Typography.headlineMedium.scaled(),
+        headlineSmall = Typography.headlineSmall.scaled(),
+        titleLarge = Typography.titleLarge.scaled(),
+        titleMedium = Typography.titleMedium.scaled(),
+        titleSmall = Typography.titleSmall.scaled(),
+        bodyLarge = Typography.bodyLarge.scaled(),
+        bodyMedium = Typography.bodyMedium.scaled(),
+        bodySmall = Typography.bodySmall.scaled(),
+        labelLarge = Typography.labelLarge.scaled(),
+        labelMedium = Typography.labelMedium.scaled(),
+        labelSmall = Typography.labelSmall.scaled(),
+    )
+}

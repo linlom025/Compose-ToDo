@@ -5,4 +5,5 @@ import kotlinx.coroutines.flow.Flow
 
 interface IHostEnvironment {
     fun getTheme(): Flow<Theme>
+    fun getFontScalePercent(): Flow<Int>
 }

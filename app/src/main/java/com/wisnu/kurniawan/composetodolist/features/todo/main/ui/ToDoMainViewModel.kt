@@ -4,8 +4,13 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.viewModelScope
 import com.wisnu.foundation.coreviewmodel.StatefulViewModel
 import com.wisnu.kurniawan.composetodolist.features.todo.main.data.IToDoMainEnvironment
+import com.wisnu.kurniawan.composetodolist.foundation.share.ClipboardDecisionLevel
+import com.wisnu.kurniawan.composetodolist.foundation.share.SharedTaskDraft
+import com.wisnu.kurniawan.composetodolist.foundation.share.SharedTaskDraftRepository
+import com.wisnu.kurniawan.composetodolist.foundation.share.SharedTextTaskParser
 import com.wisnu.kurniawan.composetodolist.model.TaskQuadrant
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 import javax.inject.Inject
@@ -16,33 +21,39 @@ class ToDoMainViewModel @Inject constructor(
 ) : StatefulViewModel<ToDoMainState, Unit, ToDoMainAction, IToDoMainEnvironment>(ToDoMainState(), todoMainEnvironment) {
 
     init {
+        initShowCompleted()
         initQuadrants()
+        initQuadrantDisplayNames()
+        initClipboardAdaptiveBias()
+        initSharedTaskDraft()
+        initClipboardTaskCandidate()
     }
 
     override fun dispatch(action: ToDoMainAction) {
         when (action) {
             ToDoMainAction.ToggleShowCompleted -> {
                 viewModelScope.launch {
-                    setState { copy(showCompleted = !showCompleted) }
+                    val next = !state.value.showCompleted
+                    setState { copy(showCompleted = next) }
+                    environment.setShowCompleted(next)
                 }
             }
 
             is ToDoMainAction.OpenCreateDialog -> {
                 viewModelScope.launch {
-                    val now = environment.dateTimeProvider.now()
-                    setState {
-                        copy(
-                            isCreateDialogVisible = true,
-                            createQuadrant = action.quadrant,
-                            createTaskName = TextFieldValue(),
-                            createDueEnabled = false,
-                            createDueDate = now.toLocalDate(),
-                            createDueTime = now.toLocalTime().withSecond(0).withNano(0),
-                            createNote = TextFieldValue(),
-                            showCreateDueDatePicker = false,
-                            showCreateDueTimePicker = false
-                        )
-                    }
+                    openCreateDialogWithPrefill(
+                        quadrant = action.quadrant,
+                        taskName = "",
+                        note = "",
+                        isQuadrantLocked = true
+                    )
+                }
+            }
+
+            is ToDoMainAction.ChangeCreateQuadrant -> {
+                viewModelScope.launch {
+                    if (state.value.isCreateQuadrantLocked) return@launch
+                    setState { copy(createQuadrant = action.quadrant) }
                 }
             }
 
@@ -140,6 +151,47 @@ class ToDoMainViewModel @Inject constructor(
                 resetCreateDialogState()
             }
 
+            ToDoMainAction.ConfirmImportClipboardCandidate -> {
+                viewModelScope.launch {
+                    val candidate = state.value.pendingClipboardCandidate ?: return@launch
+
+                    openCreateDialogWithPrefill(
+                        quadrant = TaskQuadrant.fromDbDefault(),
+                        taskName = candidate.title,
+                        note = candidate.note,
+                        isQuadrantLocked = false
+                    )
+                    consumeClipboardCandidate(candidate = candidate, positive = true)
+                }
+            }
+
+            ToDoMainAction.DismissImportClipboardCandidate -> {
+                viewModelScope.launch {
+                    val candidate = state.value.pendingClipboardCandidate ?: return@launch
+                    consumeClipboardCandidate(candidate = candidate, positive = false)
+                }
+            }
+
+            ToDoMainAction.ConfirmImportClipboardSoftCandidate -> {
+                viewModelScope.launch {
+                    val candidate = state.value.pendingSoftClipboardCandidate ?: return@launch
+                    openCreateDialogWithPrefill(
+                        quadrant = TaskQuadrant.fromDbDefault(),
+                        taskName = candidate.title,
+                        note = candidate.note,
+                        isQuadrantLocked = false
+                    )
+                    consumeClipboardCandidate(candidate = candidate, positive = true)
+                }
+            }
+
+            ToDoMainAction.DismissImportClipboardSoftCandidate -> {
+                viewModelScope.launch {
+                    val candidate = state.value.pendingSoftClipboardCandidate ?: return@launch
+                    consumeClipboardCandidate(candidate = candidate, positive = false)
+                }
+            }
+
             is ToDoMainAction.ToggleTaskStatus -> {
                 viewModelScope.launch {
                     environment.toggleTaskStatus(action.task)
@@ -184,6 +236,108 @@ class ToDoMainViewModel @Inject constructor(
         }
     }
 
+    private fun initClipboardAdaptiveBias() {
+        viewModelScope.launch {
+            environment.getClipboardAdaptiveBias().collect { bias ->
+                SharedTextTaskParser.updateAdaptiveBias(bias)
+            }
+        }
+    }
+
+    private fun initSharedTaskDraft() {
+        viewModelScope.launch {
+            SharedTaskDraftRepository.pendingDraft.collect { draft ->
+                draft ?: return@collect
+
+                openCreateDialogWithPrefill(
+                    quadrant = TaskQuadrant.fromDbDefault(),
+                    taskName = draft.title,
+                    note = draft.note,
+                    isQuadrantLocked = false
+                )
+                SharedTaskDraftRepository.consume(draft.id)
+            }
+        }
+    }
+
+    private fun initClipboardTaskCandidate() {
+        viewModelScope.launch {
+            SharedTaskDraftRepository.pendingClipboardCandidate.collect { candidate ->
+                candidate ?: return@collect
+
+                val lastHandledFingerprint = environment.getLastHandledClipboardFingerprint().first()
+                val handledFingerprint = candidate.contentFingerprint.ifBlank { candidate.fingerprint }
+                if (
+                    handledFingerprint == lastHandledFingerprint ||
+                    candidate.fingerprint == lastHandledFingerprint
+                ) {
+                    SharedTaskDraftRepository.consumeClipboardCandidate(candidate.id)
+                    return@collect
+                }
+
+                when (candidate.clipboardDecisionLevel) {
+                    ClipboardDecisionLevel.ACCEPT -> {
+                        setState {
+                            copy(
+                                showClipboardImportDialog = true,
+                                pendingClipboardCandidate = candidate,
+                                showClipboardSoftImportHint = false,
+                                pendingSoftClipboardCandidate = null
+                            )
+                        }
+                    }
+
+                    ClipboardDecisionLevel.SOFT -> {
+                        setState {
+                            copy(
+                                showClipboardImportDialog = false,
+                                pendingClipboardCandidate = null,
+                                showClipboardSoftImportHint = true,
+                                pendingSoftClipboardCandidate = candidate
+                            )
+                        }
+                    }
+
+                    ClipboardDecisionLevel.REJECT -> {
+                        SharedTaskDraftRepository.consumeClipboardCandidate(candidate.id)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun openCreateDialogWithPrefill(
+        quadrant: TaskQuadrant,
+        taskName: String,
+        note: String,
+        isQuadrantLocked: Boolean,
+    ) {
+        val now = environment.dateTimeProvider.now()
+        setState {
+            copy(
+                isCreateDialogVisible = true,
+                createQuadrant = quadrant,
+                isCreateQuadrantLocked = isQuadrantLocked,
+                createTaskName = TextFieldValue(taskName),
+                createDueEnabled = false,
+                createDueDate = now.toLocalDate(),
+                createDueTime = now.toLocalTime().withSecond(0).withNano(0),
+                createNote = TextFieldValue(note),
+                showCreateDueDatePicker = false,
+                showCreateDueTimePicker = false
+            )
+        }
+    }
+
+    private fun initShowCompleted() {
+        viewModelScope.launch {
+            environment.getShowCompleted()
+                .collect { showCompleted ->
+                    setState { copy(showCompleted = showCompleted) }
+                }
+        }
+    }
+
     private fun initQuadrants() {
         viewModelScope.launch {
             environment.ensureQuadrantSystemLists()
@@ -194,12 +348,21 @@ class ToDoMainViewModel @Inject constructor(
         }
     }
 
+    private fun initQuadrantDisplayNames() {
+        viewModelScope.launch {
+            environment.getQuadrantDisplayNames().collect { displayNames ->
+                setState { copy(quadrantDisplayNames = displayNames) }
+            }
+        }
+    }
+
     private fun resetCreateDialogState() {
         viewModelScope.launch {
             setState {
                 copy(
                     isCreateDialogVisible = false,
                     createQuadrant = TaskQuadrant.fromDbDefault(),
+                    isCreateQuadrantLocked = false,
                     createTaskName = TextFieldValue(),
                     createDueEnabled = false,
                     createNote = TextFieldValue(),
@@ -207,6 +370,23 @@ class ToDoMainViewModel @Inject constructor(
                     showCreateDueTimePicker = false
                 )
             }
+        }
+    }
+
+    private suspend fun consumeClipboardCandidate(candidate: SharedTaskDraft, positive: Boolean) {
+        val handledFingerprint = candidate.contentFingerprint.ifBlank { candidate.fingerprint }
+        if (handledFingerprint.isNotBlank()) {
+            environment.setLastHandledClipboardFingerprint(handledFingerprint)
+        }
+        environment.recordClipboardPatternFeedback(candidate.patternKey, positive)
+        SharedTaskDraftRepository.consumeClipboardCandidate(candidate.id)
+        setState {
+            copy(
+                showClipboardImportDialog = false,
+                pendingClipboardCandidate = null,
+                showClipboardSoftImportHint = false,
+                pendingSoftClipboardCandidate = null
+            )
         }
     }
 }

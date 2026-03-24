@@ -2,8 +2,10 @@ package com.wisnu.kurniawan.composetodolist.features.calendar.ui
 
 import androidx.lifecycle.viewModelScope
 import com.wisnu.foundation.coreviewmodel.StatefulViewModel
+import com.wisnu.kurniawan.composetodolist.features.calendar.data.CalendarTaskItem
 import com.wisnu.kurniawan.composetodolist.features.calendar.data.ICalendarEnvironment
 import com.wisnu.kurniawan.composetodolist.foundation.extension.sortedByTaskForDisplay
+import com.wisnu.kurniawan.composetodolist.model.ToDoStatus
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -22,6 +24,7 @@ class CalendarViewModel @Inject constructor(
 
     override fun dispatch(action: CalendarAction) {
         when (action) {
+            is CalendarAction.SwitchMode -> switchMode(action.mode)
             CalendarAction.PreviousMonth -> updateMonthBy(-1)
             CalendarAction.NextMonth -> updateMonthBy(1)
             is CalendarAction.VisibleMonthChanged -> updateVisibleMonth(action.month)
@@ -90,7 +93,34 @@ class CalendarViewModel @Inject constructor(
                 setState {
                     copy(
                         tasksByCreatedDate = grouped,
-                        selectedDateTasks = grouped[selectedDate].orEmpty()
+                        selectedDateTasks = selectedTasksByMode(
+                            mode = mode,
+                            date = selectedDate,
+                            createdDateTasks = grouped,
+                            completedDateTasks = tasksByCompletedDate
+                        )
+                    )
+                }
+            }
+        }
+        viewModelScope.launch {
+            environment.loadTasksByCompletedDate().collect { taskItems ->
+                val grouped = taskItems
+                    .filter { it.task.status == ToDoStatus.COMPLETE && it.task.completedAt != null }
+                    .groupBy { it.task.completedAt!!.toLocalDate() }
+                    .mapValues { (_, items) ->
+                        items.sortedByDescending { it.task.completedAt ?: it.task.updatedAt }
+                    }
+
+                setState {
+                    copy(
+                        tasksByCompletedDate = grouped,
+                        selectedDateTasks = selectedTasksByMode(
+                            mode = mode,
+                            date = selectedDate,
+                            createdDateTasks = tasksByCreatedDate,
+                            completedDateTasks = grouped
+                        )
                     )
                 }
             }
@@ -105,7 +135,12 @@ class CalendarViewModel @Inject constructor(
             copy(
                 visibleMonth = nextMonth,
                 selectedDate = nextDate,
-                selectedDateTasks = tasksByCreatedDate[nextDate].orEmpty()
+                selectedDateTasks = selectedTasksByMode(
+                    mode = mode,
+                    date = nextDate,
+                    createdDateTasks = tasksByCreatedDate,
+                    completedDateTasks = tasksByCompletedDate
+                )
             )
         }
     }
@@ -118,7 +153,12 @@ class CalendarViewModel @Inject constructor(
             copy(
                 visibleMonth = month,
                 selectedDate = nextDate,
-                selectedDateTasks = tasksByCreatedDate[nextDate].orEmpty()
+                selectedDateTasks = selectedTasksByMode(
+                    mode = mode,
+                    date = nextDate,
+                    createdDateTasks = tasksByCreatedDate,
+                    completedDateTasks = tasksByCompletedDate
+                )
             )
         }
     }
@@ -128,8 +168,40 @@ class CalendarViewModel @Inject constructor(
             copy(
                 selectedDate = date,
                 visibleMonth = YearMonth.from(date),
-                selectedDateTasks = tasksByCreatedDate[date].orEmpty()
+                selectedDateTasks = selectedTasksByMode(
+                    mode = mode,
+                    date = date,
+                    createdDateTasks = tasksByCreatedDate,
+                    completedDateTasks = tasksByCompletedDate
+                )
             )
+        }
+    }
+
+    private fun switchMode(mode: CalendarMode) {
+        if (state.value.mode == mode) return
+        setState {
+            copy(
+                mode = mode,
+                selectedDateTasks = selectedTasksByMode(
+                    mode = mode,
+                    date = selectedDate,
+                    createdDateTasks = tasksByCreatedDate,
+                    completedDateTasks = tasksByCompletedDate
+                )
+            )
+        }
+    }
+
+    private fun selectedTasksByMode(
+        mode: CalendarMode,
+        date: LocalDate,
+        createdDateTasks: Map<LocalDate, List<CalendarTaskItem>>,
+        completedDateTasks: Map<LocalDate, List<CalendarTaskItem>>
+    ): List<CalendarTaskItem> {
+        return when (mode) {
+            CalendarMode.CALENDAR -> createdDateTasks[date].orEmpty()
+            CalendarMode.ARCHIVE -> completedDateTasks[date].orEmpty()
         }
     }
 }

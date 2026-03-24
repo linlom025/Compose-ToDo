@@ -13,6 +13,7 @@ class HostViewModel @Inject constructor(hostEnvironment: IHostEnvironment) :
 
     init {
         initTheme()
+        initFontScale()
     }
 
     override fun dispatch(action: Unit) {
@@ -23,6 +24,13 @@ class HostViewModel @Inject constructor(hostEnvironment: IHostEnvironment) :
         viewModelScope.launch {
             environment.getTheme()
                 .collect { setState { copy(theme = it) } }
+        }
+    }
+
+    private fun initFontScale() {
+        viewModelScope.launch {
+            environment.getFontScalePercent()
+                .collect { setState { copy(fontScalePercent = it) } }
         }
     }
 

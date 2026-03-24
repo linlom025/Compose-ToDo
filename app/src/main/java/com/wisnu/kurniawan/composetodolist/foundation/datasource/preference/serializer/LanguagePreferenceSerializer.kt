@@ -1,24 +1,12 @@
 package com.wisnu.kurniawan.composetodolist.foundation.datasource.preference.serializer
 
-import androidx.datastore.core.CorruptionException
-import androidx.datastore.core.Serializer
 import com.wisnu.kurniawan.composetodolist.foundation.datasource.preference.model.UserLanguagePreference
-import java.io.IOException
-import java.io.InputStream
-import java.io.OutputStream
 
-object LanguagePreferenceSerializer : Serializer<UserLanguagePreference> {
+object LanguagePreferenceSerializer : EncryptedProtoSerializer<UserLanguagePreference>() {
 
     override val defaultValue: UserLanguagePreference = UserLanguagePreference.getDefaultInstance()
 
-    override suspend fun readFrom(input: InputStream): UserLanguagePreference {
-        try {
-            return UserLanguagePreference.parseFrom(input)
-        } catch (exception: IOException) {
-            throw CorruptionException("Cannot read proto", exception)
-        }
+    override fun parseFrom(bytes: ByteArray): UserLanguagePreference {
+        return UserLanguagePreference.parseFrom(bytes)
     }
-
-    override suspend fun writeTo(t: UserLanguagePreference, output: OutputStream) = t.writeTo(output)
-
 }

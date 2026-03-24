@@ -19,7 +19,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.RadioButtonUnchecked
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -46,8 +45,10 @@ import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.PgIcon
 import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.MotionTokens
 import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.PgToDoCreator
 import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.PgToDoItemCell
+import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.PgQuadrantSelectorChip
 import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.itemInfoDisplayable
 import com.wisnu.kurniawan.composetodolist.foundation.uiextension.requestFocusImeAware
+import com.wisnu.kurniawan.composetodolist.model.QuadrantDisplayNames
 import com.wisnu.kurniawan.composetodolist.model.TaskQuadrant
 import com.wisnu.kurniawan.composetodolist.model.ToDoTask
 import kotlinx.coroutines.launch
@@ -219,6 +220,7 @@ fun TaskEditor(
 
         TaskQuadrantSelector(
             selectedQuadrant = state.taskQuadrant,
+            displayNames = state.quadrantDisplayNames,
             onSelectQuadrant = {
                 viewModel.dispatch(ListDetailAction.TaskAction.ChangeTaskQuadrant(it))
             }
@@ -229,6 +231,7 @@ fun TaskEditor(
 @Composable
 private fun TaskQuadrantSelector(
     selectedQuadrant: TaskQuadrant,
+    displayNames: QuadrantDisplayNames,
     onSelectQuadrant: (TaskQuadrant) -> Unit
 ) {
     val quadrants = listOf(
@@ -245,7 +248,7 @@ private fun TaskQuadrantSelector(
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Text(
-            text = "\u56DB\u8C61\u9650",
+            text = stringResource(R.string.todo_quadrant_selector_title),
             style = MaterialTheme.typography.titleSmall
         )
 
@@ -255,16 +258,11 @@ private fun TaskQuadrantSelector(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 row.forEach { quadrant ->
-                    FilterChip(
+                    PgQuadrantSelectorChip(
                         modifier = Modifier.weight(1f),
                         selected = selectedQuadrant == quadrant,
                         onClick = { onSelectQuadrant(quadrant) },
-                        label = {
-                            Text(
-                                text = quadrant.toDisplayName(),
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                        }
+                        text = quadrant.toDisplayName(displayNames)
                     )
                 }
             }
@@ -272,11 +270,6 @@ private fun TaskQuadrantSelector(
     }
 }
 
-private fun TaskQuadrant.toDisplayName(): String {
-    return when (this) {
-        TaskQuadrant.Q1 -> "\u91CD\u8981\u4E14\u7D27\u6025"
-        TaskQuadrant.Q2 -> "\u91CD\u8981\u4E0D\u7D27\u6025"
-        TaskQuadrant.Q3 -> "\u4E0D\u91CD\u8981\u4F46\u7D27\u6025"
-        TaskQuadrant.Q4 -> "\u4E0D\u91CD\u8981\u4E0D\u7D27\u6025"
-    }
+private fun TaskQuadrant.toDisplayName(displayNames: QuadrantDisplayNames): String {
+    return displayNames.titleOf(this)
 }

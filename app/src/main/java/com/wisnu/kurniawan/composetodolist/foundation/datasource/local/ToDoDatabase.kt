@@ -7,6 +7,7 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.wisnu.kurniawan.composetodolist.foundation.security.StorageKeyProvider
 import com.wisnu.kurniawan.composetodolist.foundation.datasource.local.converter.DateConverter
 import com.wisnu.kurniawan.composetodolist.foundation.datasource.local.dao.ToDoGroupReadDao
 import com.wisnu.kurniawan.composetodolist.foundation.datasource.local.dao.ToDoGroupWriteDao
@@ -26,6 +27,8 @@ import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import net.sqlcipher.database.SQLiteDatabase
+import net.sqlcipher.database.SupportFactory
 
 @Database(
     entities = [
@@ -54,7 +57,7 @@ abstract class ToDoDatabase : RoomDatabase() {
 
     @DelicateCoroutinesApi
     companion object {
-        private const val TODO_DB_NAME = "todo-db"
+        const val TODO_DB_NAME = "todo-db"
 
         @Volatile
         private var INSTANCE: ToDoDatabase? = null
@@ -66,11 +69,16 @@ abstract class ToDoDatabase : RoomDatabase() {
         }
 
         private fun buildDatabase(context: Context): ToDoDatabase {
+            SQLiteDatabase.loadLibs(context)
+            val supportFactory = SupportFactory(
+                StorageKeyProvider.getInstance(context).getDatabasePassphrase()
+            )
             val db = Room.databaseBuilder(
                 context,
                 ToDoDatabase::class.java,
                 TODO_DB_NAME
             )
+                .openHelperFactory(supportFactory)
                 .addCallback(
                     object : Callback() {
                         override fun onCreate(db: SupportSQLiteDatabase) {
@@ -97,7 +105,9 @@ abstract class ToDoDatabase : RoomDatabase() {
             )
             val writeDao = getInstance(context).toDoGroupWriteDao()
 
-            writeDao.insertGroup(listOf(defaultGroup))
+            runCatching {
+                writeDao.insertGroup(listOf(defaultGroup))
+            }
         }
 
     }

@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+option java_package = "com.wisnu.kurniawan.composetodolist.foundation.datasource.preference.model";
+option java_multiple_files = true;
+
+message UserClipboardImportPreference {
+  string last_handled_fingerprint = 1;
+  repeated ClipboardPatternFeedback pattern_feedbacks = 2;
+  bool quick_fill_enabled = 3;
+}
+
+message ClipboardPatternFeedback {
+  string pattern_key = 1;
+  int32 positive_total = 2;
+  int32 negative_total = 3;
+  int32 positive_streak = 4;
+  int32 negative_streak = 5;
+}

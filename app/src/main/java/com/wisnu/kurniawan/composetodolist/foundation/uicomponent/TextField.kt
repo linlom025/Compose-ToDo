@@ -129,7 +129,7 @@ fun PgTextField(
             )
         },
         modifier = if (singleLine) {
-            modifier.height(TextFieldHeight)
+            modifier.heightIn(min = TextFieldHeight)
         } else {
             modifier.heightIn(min = TextFieldHeight)
         },

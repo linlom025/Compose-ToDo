@@ -41,6 +41,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -85,6 +86,7 @@ fun CalendarScreen(
     CalendarContent(
         state = state,
         onBackClick = onBackClick,
+        onSwitchMode = { viewModel.dispatch(CalendarAction.SwitchMode(it)) },
         onPreviousMonth = { viewModel.dispatch(CalendarAction.PreviousMonth) },
         onNextMonth = { viewModel.dispatch(CalendarAction.NextMonth) },
         onVisibleMonthChanged = { viewModel.dispatch(CalendarAction.VisibleMonthChanged(it)) },
@@ -101,6 +103,7 @@ fun CalendarScreen(
 private fun CalendarContent(
     state: CalendarState,
     onBackClick: () -> Unit,
+    onSwitchMode: (CalendarMode) -> Unit,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
     onVisibleMonthChanged: (YearMonth) -> Unit,
@@ -153,6 +156,16 @@ private fun CalendarContent(
             state.visibleMonth.format(DateTimeFormatter.ofPattern("yyyy MMMM", locale))
         }
     }
+    val tasksByDate = if (state.mode == CalendarMode.CALENDAR) {
+        state.tasksByCreatedDate
+    } else {
+        state.tasksByCompletedDate
+    }
+    val emptyTextRes = if (state.mode == CalendarMode.CALENDAR) {
+        R.string.todo_calendar_no_task_on_day
+    } else {
+        R.string.todo_archive_no_task_on_day
+    }
 
     PgPageLayout(horizontalPadding = 2.dp, topContentPadding = 2.dp) {
         Row(
@@ -170,6 +183,12 @@ private fun CalendarContent(
                 style = MaterialTheme.typography.titleMedium
             )
         }
+
+        CalendarModeSwitch(
+            mode = state.mode,
+            onSwitchMode = onSwitchMode,
+            modifier = Modifier.fillMaxWidth()
+        )
 
         Surface(
             shape = MaterialTheme.shapes.large,
@@ -234,7 +253,7 @@ private fun CalendarContent(
                             day = day,
                             today = today,
                             isSelected = day.date == state.selectedDate,
-                            hasTask = !state.tasksByCreatedDate[day.date].isNullOrEmpty(),
+                            hasTask = !tasksByDate[day.date].isNullOrEmpty(),
                             onClick = { onSelectDate(day.date) }
                         )
                     }
@@ -246,7 +265,7 @@ private fun CalendarContent(
 
         if (state.selectedDateTasks.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                PgEmpty(text = stringResource(R.string.todo_calendar_no_task_on_day))
+                PgEmpty(text = stringResource(emptyTextRes))
             }
         } else {
             LazyColumn(
@@ -271,6 +290,75 @@ private fun CalendarContent(
         PgConfirmDeleteDialog(
             onConfirm = onConfirmDeleteTask,
             onDismiss = onDismissDeleteTask
+        )
+    }
+}
+
+@Composable
+private fun CalendarModeSwitch(
+    mode: CalendarMode,
+    onSwitchMode: (CalendarMode) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(14.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            CalendarModeButton(
+                text = stringResource(R.string.todo_calendar_mode_calendar),
+                selected = mode == CalendarMode.CALENDAR,
+                onClick = { onSwitchMode(CalendarMode.CALENDAR) },
+                modifier = Modifier.weight(1f)
+            )
+            CalendarModeButton(
+                text = stringResource(R.string.todo_calendar_mode_archive),
+                selected = mode == CalendarMode.ARCHIVE,
+                onClick = { onSwitchMode(CalendarMode.ARCHIVE) },
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun CalendarModeButton(
+    text: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val backgroundColor = if (selected) {
+        MaterialTheme.colorScheme.primaryContainer
+    } else {
+        Color.Transparent
+    }
+    val textColor = if (selected) {
+        MaterialTheme.colorScheme.onPrimaryContainer
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(10.dp))
+            .background(backgroundColor)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 8.dp, vertical = 8.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Medium,
+            color = textColor,
+            maxLines = 1,
+            textAlign = TextAlign.Center
         )
     }
 }

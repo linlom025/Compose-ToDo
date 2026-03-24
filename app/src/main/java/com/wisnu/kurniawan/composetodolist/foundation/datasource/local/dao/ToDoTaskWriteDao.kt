@@ -41,6 +41,9 @@ interface ToDoTaskWriteDao {
     @Query("UPDATE ToDoTaskDb SET task_listId = :listId, task_updatedAt = :updatedAt WHERE task_id IN (:ids)")
     suspend fun updateTaskList(ids: List<String>, listId: String, updatedAt: LocalDateTime)
 
+    @Query("UPDATE ToDoTaskDb SET task_listId = :listId, task_quadrant = :quadrant, task_updatedAt = :updatedAt WHERE task_id = :id")
+    suspend fun updateTaskListAndQuadrant(id: String, listId: String, quadrant: Int, updatedAt: LocalDateTime)
+
 //    @Transaction
 //    suspend fun rearrangeTask(data: List<ToDoTaskDb>) {
 //        deleteTask(data)

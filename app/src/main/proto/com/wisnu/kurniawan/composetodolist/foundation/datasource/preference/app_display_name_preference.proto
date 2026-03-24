@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+option java_package = "com.wisnu.kurniawan.composetodolist.foundation.datasource.preference.model";
+option java_multiple_files = true;
+
+message UserAppDisplayNamePreference {
+  string app_display_title = 1;
+  string quadrant_title_q1 = 2;
+  string quadrant_title_q2 = 3;
+  string quadrant_title_q3 = 4;
+  string quadrant_title_q4 = 5;
+}

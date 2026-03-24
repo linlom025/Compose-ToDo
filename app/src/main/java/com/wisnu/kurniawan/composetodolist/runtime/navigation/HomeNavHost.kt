@@ -9,6 +9,8 @@ import com.wisnu.kurniawan.composetodolist.features.calendar.ui.CalendarScreen
 import com.wisnu.kurniawan.composetodolist.features.calendar.ui.CalendarViewModel
 import com.wisnu.kurniawan.composetodolist.features.dashboard.ui.DashboardScreen
 import com.wisnu.kurniawan.composetodolist.features.dashboard.ui.DashboardViewModel
+import com.wisnu.kurniawan.composetodolist.features.setting.ui.SettingScreen
+import com.wisnu.kurniawan.composetodolist.features.setting.ui.SettingViewModel
 import com.wisnu.kurniawan.composetodolist.features.todo.main.ui.ToDoMainViewModel
 
 fun NavGraphBuilder.HomeNavHost(
@@ -22,6 +24,7 @@ fun NavGraphBuilder.HomeNavHost(
                 viewModel = viewModel,
                 toDoMainViewModel = toDoMainViewModel,
                 onCalendarClick = { navController.navigate(HomeFlow.CalendarScreen.route) },
+                onSettingClick = { navController.navigate(HomeFlow.SettingsScreen.route) },
                 onTaskItemClick = { taskId, listId -> navController.navigate(StepFlow.Root.route(taskId, listId)) }
             )
         }
@@ -34,6 +37,14 @@ fun NavGraphBuilder.HomeNavHost(
                 onTaskItemClick = { taskId, listId ->
                     navController.navigate(StepFlow.Root.route(taskId, listId))
                 }
+            )
+        }
+
+        composable(HomeFlow.SettingsScreen.route) {
+            val viewModel = hiltViewModel<SettingViewModel>()
+            SettingScreen(
+                viewModel = viewModel,
+                onBackClick = { navController.popBackStack() }
             )
         }
     }
@@ -53,6 +64,7 @@ fun NavGraphBuilder.HomeTabletNavHost(
                 viewModel = viewModel,
                 toDoMainViewModel = toDoMainViewModel,
                 onCalendarClick = { navControllerLeft.navigate(HomeFlow.CalendarScreen.route) },
+                onSettingClick = { navControllerLeft.navigate(HomeFlow.SettingsScreen.route) },
                 onTaskItemClick = { taskId, listId ->
                     navControllerRight.navigate(StepFlow.Root.route(taskId, listId)) {
                         popUpTo(MainFlow.RootEmpty.route)
@@ -71,6 +83,14 @@ fun NavGraphBuilder.HomeTabletNavHost(
                         popUpTo(MainFlow.RootEmpty.route)
                     }
                 }
+            )
+        }
+
+        composable(HomeFlow.SettingsScreen.route) {
+            val viewModel = hiltViewModel<SettingViewModel>()
+            SettingScreen(
+                viewModel = viewModel,
+                onBackClick = { navControllerLeft.popBackStack() }
             )
         }
     }

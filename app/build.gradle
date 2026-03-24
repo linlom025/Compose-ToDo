@@ -163,9 +163,11 @@ dependencies {
     implementation libs.androidx.appcompat
     implementation libs.androidx.lifecycle.runtimeCompose
     implementation libs.androidx.lifecycle.viewModelCompose
+    implementation 'androidx.lifecycle:lifecycle-process:2.8.7'
     implementation libs.androidx.activity.compose
     implementation libs.androidx.navigation.compose
     implementation libs.androidx.hilt.navigation.compose
+    implementation 'androidx.biometric:biometric:1.1.0'
     implementation libs.lottie.compose
     implementation libs.google.material
     implementation libs.wisnu.foundation.core.viewmodel
@@ -203,6 +205,7 @@ dependencies {
     // Key-value
     implementation libs.androidx.dataStore.core
     implementation libs.google.protobuf
+    implementation 'net.zetetic:android-database-sqlcipher:4.5.4'
 
     // Server
     implementation libs.bundles.networking

@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.Flow
 interface ICalendarEnvironment {
     val dateTimeProvider: DateTimeProvider
     fun loadTasksByCreatedDate(): Flow<List<CalendarTaskItem>>
+    fun loadTasksByCompletedDate(): Flow<List<CalendarTaskItem>>
     suspend fun toggleTaskStatus(task: ToDoTask)
     suspend fun deleteTask(task: ToDoTask)
 }

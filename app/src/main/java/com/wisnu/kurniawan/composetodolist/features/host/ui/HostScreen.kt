@@ -11,5 +11,9 @@ fun Host(content: @Composable () -> Unit) {
     val viewModel = hiltViewModel<HostViewModel>()
     val state by viewModel.state.collectAsStateWithLifecycle()
 
-    Theme(theme = state.theme, content = content)
+    Theme(
+        theme = state.theme,
+        fontScalePercent = state.fontScalePercent,
+        content = content
+    )
 }

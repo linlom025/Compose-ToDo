@@ -3,9 +3,13 @@ package com.wisnu.kurniawan.composetodolist.features.todo.main.data
 import com.wisnu.kurniawan.composetodolist.foundation.datasource.local.model.ToDoGroupDb
 import com.wisnu.kurniawan.composetodolist.foundation.datasource.local.provider.ToDoListProvider
 import com.wisnu.kurniawan.composetodolist.foundation.datasource.local.provider.ToDoTaskProvider
+import com.wisnu.kurniawan.composetodolist.foundation.datasource.preference.provider.AppDisplayNameProvider
+import com.wisnu.kurniawan.composetodolist.foundation.datasource.preference.provider.ClipboardImportPreferenceProvider
+import com.wisnu.kurniawan.composetodolist.foundation.datasource.preference.provider.TodoVisibilityProvider
 import com.wisnu.kurniawan.composetodolist.foundation.extension.toggleStatusHandler
 import com.wisnu.kurniawan.composetodolist.foundation.wrapper.DateTimeProvider
 import com.wisnu.kurniawan.composetodolist.foundation.wrapper.IdProvider
+import com.wisnu.kurniawan.composetodolist.model.QuadrantDisplayNames
 import com.wisnu.kurniawan.composetodolist.model.TaskQuadrant
 import com.wisnu.kurniawan.composetodolist.model.ToDoList
 import com.wisnu.kurniawan.composetodolist.model.ToDoStatus
@@ -21,7 +25,34 @@ class ToDoMainEnvironment @Inject constructor(
     override val dateTimeProvider: DateTimeProvider,
     private val toDoListProvider: ToDoListProvider,
     private val toDoTaskProvider: ToDoTaskProvider,
+    private val todoVisibilityProvider: TodoVisibilityProvider,
+    private val appDisplayNameProvider: AppDisplayNameProvider,
+    private val clipboardImportPreferenceProvider: ClipboardImportPreferenceProvider,
 ) : IToDoMainEnvironment {
+
+    override fun getShowCompleted(): Flow<Boolean> {
+        return todoVisibilityProvider.getShowCompleted()
+    }
+
+    override suspend fun setShowCompleted(showCompleted: Boolean) {
+        todoVisibilityProvider.setShowCompleted(showCompleted)
+    }
+
+    override fun getLastHandledClipboardFingerprint(): Flow<String> {
+        return clipboardImportPreferenceProvider.getLastHandledClipboardFingerprint()
+    }
+
+    override fun getClipboardAdaptiveBias(): Flow<Map<String, Int>> {
+        return clipboardImportPreferenceProvider.getAdaptiveBiasByPattern()
+    }
+
+    override suspend fun setLastHandledClipboardFingerprint(fingerprint: String) {
+        clipboardImportPreferenceProvider.setLastHandledClipboardFingerprint(fingerprint)
+    }
+
+    override suspend fun recordClipboardPatternFeedback(patternKey: String, positive: Boolean) {
+        clipboardImportPreferenceProvider.recordPatternFeedback(patternKey, positive)
+    }
 
     override fun loadQuadrantTasks(): Flow<List<QuadrantTask>> {
         return toDoListProvider.getListWithTasks()
@@ -30,6 +61,11 @@ class ToDoMainEnvironment @Inject constructor(
                     list.tasks.map { task -> QuadrantTask(task = task, listId = list.id) }
                 }
             }
+    }
+
+    override fun getQuadrantDisplayNames(): Flow<QuadrantDisplayNames> {
+        return appDisplayNameProvider.getDisplayNameConfig()
+            .map { it.quadrantTitles }
     }
 
     override suspend fun ensureQuadrantSystemLists() {

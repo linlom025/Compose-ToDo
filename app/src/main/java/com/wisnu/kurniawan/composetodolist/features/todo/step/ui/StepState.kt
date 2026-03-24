@@ -3,6 +3,7 @@ package com.wisnu.kurniawan.composetodolist.features.todo.step.ui
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.text.input.TextFieldValue
 import com.wisnu.kurniawan.composetodolist.foundation.wrapper.DateTimeProviderImpl
+import com.wisnu.kurniawan.composetodolist.model.QuadrantDisplayNames
 import com.wisnu.kurniawan.composetodolist.model.ToDoColor
 import com.wisnu.kurniawan.composetodolist.model.ToDoRepeat
 import com.wisnu.kurniawan.composetodolist.model.ToDoTask
@@ -30,6 +31,8 @@ data class StepState(
     val showDueDatePicker: Boolean = false,
     val dueTimeInitial: LocalTime = DateTimeProviderImpl().now().toLocalTime(),
     val showDueTimePicker: Boolean = false,
+    val quadrantDisplayNames: QuadrantDisplayNames = QuadrantDisplayNames.default(),
+    val showQuadrantDialog: Boolean = false,
 ) {
     val validEditTaskName = editTaskName.text.isNotBlank()
     val validEditStepName = editStepName.text.isNotBlank()

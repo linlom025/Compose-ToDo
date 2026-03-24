@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+option java_package = "com.wisnu.kurniawan.composetodolist.foundation.datasource.preference.model";
+option java_multiple_files = true;
+
+message UserFontScalePreference {
+  FontScalePreference preset = 1;
+  int32 scale_percent = 2;
+}
+
+enum FontScalePreference {
+  NORMAL = 0;
+  SMALL = 1;
+  LARGE = 2;
+}

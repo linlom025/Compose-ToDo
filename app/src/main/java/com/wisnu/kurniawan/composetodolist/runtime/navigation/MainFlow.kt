@@ -8,6 +8,10 @@ sealed class MainFlow(val name: String) {
         val route = name
     }
 
+    object AuthGate : MainFlow("auth-gate") {
+        val route = name
+    }
+
     object RootEmpty : MainFlow("list-detail-root-empty") {
         val route = name
     }
@@ -23,6 +27,10 @@ sealed class HomeFlow(val name: String) {
     }
 
     object CalendarScreen : HomeFlow("calendar-screen") {
+        val route = name
+    }
+
+    object SettingsScreen : HomeFlow("settings-screen") {
         val route = name
     }
 }

@@ -1,12 +1,9 @@
 package com.wisnu.kurniawan.composetodolist.foundation.theme
 
-import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -115,6 +112,7 @@ val AuroraColorPalette = darkColorScheme(
 @Composable
 fun Theme(
     theme: Theme,
+    fontScalePercent: Int = 100,
     content: @Composable () -> Unit
 ) {
     val colors = when (theme) {
@@ -123,21 +121,6 @@ fun Theme(
                 NightColorPalette
             } else {
                 LightColorPalette
-            }
-        }
-        Theme.WALLPAPER -> {
-            if (isSystemInDarkTheme()) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    dynamicDarkColorScheme(LocalContext.current)
-                } else {
-                    NightColorPalette
-                }
-            } else {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    dynamicLightColorScheme(LocalContext.current)
-                } else {
-                    LightColorPalette
-                }
             }
         }
         Theme.LIGHT -> LightColorPalette
@@ -149,6 +132,8 @@ fun Theme(
     val darkIcons = colors == LightColorPalette || colors == SunriseColorPalette
     val systemUiController = rememberSystemUiController()
     val activity = LocalContext.current as AppCompatActivity
+    val safeScalePercent = fontScalePercent.coerceIn(50, 200)
+    val appScaleFactor = safeScalePercent / 100f
 
     SideEffect {
         systemUiController.setSystemBarsColor(
@@ -170,7 +155,7 @@ fun Theme(
 
     MaterialTheme(
         colorScheme = colors,
-        typography = Typography,
+        typography = scaledTypography(appScaleFactor),
         shapes = Shapes,
         content = content
     )

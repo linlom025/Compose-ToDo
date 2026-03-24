@@ -22,12 +22,27 @@ class HostViewModelTest : BaseViewModelTest() {
             override fun getTheme(): Flow<Theme> {
                 return flow { emit(Theme.SUNRISE) }
             }
+
+            override fun getFontScalePercent(): Flow<Int> {
+                return flow { emit(130) }
+            }
         }
 
         val viewModel = HostViewModel(environment)
 
         viewModel.state.test {
-            Assert.assertEquals(Theme.SUNRISE, awaitItem().theme)
+            val first = awaitItem()
+            val result = if (
+                first.theme == Theme.SUNRISE &&
+                first.fontScalePercent == 130
+            ) {
+                first
+            } else {
+                awaitItem()
+            }
+
+            Assert.assertEquals(Theme.SUNRISE, result.theme)
+            Assert.assertEquals(130, result.fontScalePercent)
 
             cancelAndConsumeRemainingEvents()
         }
