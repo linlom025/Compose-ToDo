@@ -46,6 +46,10 @@ class ToDoMainEnvironment @Inject constructor(
         return clipboardImportPreferenceProvider.getAdaptiveBiasByPattern()
     }
 
+    override fun getQuickFillHintDurationSeconds(): Flow<Int> {
+        return clipboardImportPreferenceProvider.getQuickFillHintDurationSeconds()
+    }
+
     override suspend fun setLastHandledClipboardFingerprint(fingerprint: String) {
         clipboardImportPreferenceProvider.setLastHandledClipboardFingerprint(fingerprint)
     }

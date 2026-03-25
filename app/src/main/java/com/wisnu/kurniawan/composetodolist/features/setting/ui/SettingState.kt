@@ -18,6 +18,10 @@ data class SettingState(
 
     val appliedReminderLeadMinutes: Int = 15,
     val appliedQuickFillEnabled: Boolean = false,
+    val appliedQuickFillHintDurationSeconds: Int = 5,
+    val showQuickFillDurationDialog: Boolean = false,
+    val quickFillDurationDraftSecondsText: String = "5",
+    val quickFillDurationValidationError: QuickFillDurationValidationError = QuickFillDurationValidationError.None,
     val showReminderDialog: Boolean = false,
     val reminderDraftMinutesText: String = "15",
     val reminderValidationError: ReminderValidationError = ReminderValidationError.None,
@@ -36,4 +40,11 @@ sealed class ReminderValidationError {
     object Empty : ReminderValidationError()
     object InvalidNumber : ReminderValidationError()
     object OutOfRange : ReminderValidationError()
+}
+
+sealed class QuickFillDurationValidationError {
+    object None : QuickFillDurationValidationError()
+    object Empty : QuickFillDurationValidationError()
+    object InvalidNumber : QuickFillDurationValidationError()
+    object OutOfRange : QuickFillDurationValidationError()
 }

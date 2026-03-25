@@ -6,6 +6,7 @@ import com.wisnu.kurniawan.composetodolist.R
 import com.wisnu.kurniawan.composetodolist.features.setting.data.ISettingEnvironment
 import com.wisnu.kurniawan.composetodolist.features.todo.taskreminder.data.TaskNotificationSendResult
 import com.wisnu.kurniawan.composetodolist.foundation.security.AppAuthGate
+import com.wisnu.kurniawan.composetodolist.foundation.datasource.preference.provider.ClipboardImportPreferenceProvider
 import com.wisnu.kurniawan.composetodolist.foundation.datasource.preference.provider.FontScaleProvider
 import com.wisnu.kurniawan.composetodolist.foundation.datasource.preference.provider.ReminderPreferenceProvider
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -27,6 +28,7 @@ class SettingViewModel @Inject constructor(
         initFontScale()
         initReminderLeadMinutes()
         initQuickFillEnabled()
+        initQuickFillHintDuration()
     }
 
     override fun dispatch(action: SettingAction) {
@@ -151,7 +153,62 @@ class SettingViewModel @Inject constructor(
             is SettingAction.ToggleQuickFill -> {
                 viewModelScope.launch {
                     environment.setQuickFillEnabled(action.enabled)
-                    setState { copy(appliedQuickFillEnabled = action.enabled) }
+                    setState {
+                        copy(
+                            appliedQuickFillEnabled = action.enabled,
+                            showQuickFillDurationDialog = if (action.enabled) {
+                                showQuickFillDurationDialog
+                            } else {
+                                false
+                            }
+                        )
+                    }
+                }
+            }
+
+            SettingAction.OpenQuickFillDurationDialog -> {
+                setState {
+                    copy(
+                        showQuickFillDurationDialog = true,
+                        quickFillDurationDraftSecondsText = appliedQuickFillHintDurationSeconds.toString(),
+                        quickFillDurationValidationError = QuickFillDurationValidationError.None
+                    )
+                }
+            }
+
+            SettingAction.CloseQuickFillDurationDialog -> {
+                setState {
+                    copy(
+                        showQuickFillDurationDialog = false,
+                        quickFillDurationDraftSecondsText = appliedQuickFillHintDurationSeconds.toString(),
+                        quickFillDurationValidationError = QuickFillDurationValidationError.None
+                    )
+                }
+            }
+
+            is SettingAction.ChangeQuickFillDurationDraftSeconds -> {
+                val filtered = action.value.filter { it.isDigit() }.take(2)
+                setState {
+                    copy(
+                        quickFillDurationDraftSecondsText = filtered,
+                        quickFillDurationValidationError = validateQuickFillDuration(filtered)
+                    )
+                }
+            }
+
+            SettingAction.SaveQuickFillDuration -> {
+                viewModelScope.launch {
+                    saveQuickFillDurationAndCloseIfValid()
+                }
+            }
+
+            SettingAction.ResetQuickFillDurationDefault -> {
+                setState {
+                    copy(
+                        quickFillDurationDraftSecondsText =
+                            ClipboardImportPreferenceProvider.DEFAULT_QUICK_FILL_HINT_DURATION_SECONDS.toString(),
+                        quickFillDurationValidationError = QuickFillDurationValidationError.None
+                    )
                 }
             }
 
@@ -173,6 +230,7 @@ class SettingViewModel @Inject constructor(
                 when {
                     state.value.showThemeDialog -> dispatch(SettingAction.CloseThemeDialog)
                     state.value.showReminderDialog -> dispatch(SettingAction.CloseReminderDialog)
+                    state.value.showQuickFillDurationDialog -> dispatch(SettingAction.CloseQuickFillDurationDialog)
                     state.value.showFontDialog -> dispatch(SettingAction.CloseFontDialog)
                     else -> setEffect(SettingEffect.NavigateBack)
                 }
@@ -331,7 +389,37 @@ class SettingViewModel @Inject constructor(
         viewModelScope.launch {
             environment.getQuickFillEnabled()
                 .collect { enabled ->
-                    setState { copy(appliedQuickFillEnabled = enabled) }
+                    setState {
+                        copy(
+                            appliedQuickFillEnabled = enabled,
+                            showQuickFillDurationDialog = if (enabled) showQuickFillDurationDialog else false
+                        )
+                    }
+                }
+        }
+    }
+
+    private fun initQuickFillHintDuration() {
+        viewModelScope.launch {
+            environment.getQuickFillHintDurationSeconds()
+                .collect { seconds ->
+                    setState {
+                        val shouldSyncDraft = !showQuickFillDurationDialog ||
+                            quickFillDurationDraftSecondsText.toIntOrNull() == appliedQuickFillHintDurationSeconds
+                        copy(
+                            appliedQuickFillHintDurationSeconds = seconds,
+                            quickFillDurationDraftSecondsText = if (shouldSyncDraft) {
+                                seconds.toString()
+                            } else {
+                                quickFillDurationDraftSecondsText
+                            },
+                            quickFillDurationValidationError = if (shouldSyncDraft) {
+                                QuickFillDurationValidationError.None
+                            } else {
+                                quickFillDurationValidationError
+                            }
+                        )
+                    }
                 }
         }
     }
@@ -405,6 +493,24 @@ class SettingViewModel @Inject constructor(
         return state.value.reminderDraftMinutesText.toIntOrNull() != state.value.appliedReminderLeadMinutes
     }
 
+    private suspend fun saveQuickFillDurationAndCloseIfValid(): Boolean {
+        val draftValue = state.value.quickFillDurationDraftSecondsText
+        val error = validateQuickFillDuration(draftValue)
+        if (error != QuickFillDurationValidationError.None) {
+            setState { copy(quickFillDurationValidationError = error) }
+            return false
+        }
+
+        val target = draftValue.toIntOrNull() ?: return false
+        environment.setQuickFillHintDurationSeconds(target)
+        setState {
+            copy(
+                showQuickFillDurationDialog = false
+            )
+        }
+        return true
+    }
+
     private fun validateFontScale(value: String): FontValidationError {
         if (value.isBlank()) return FontValidationError.Empty
         val parsed = value.toIntOrNull() ?: return FontValidationError.InvalidNumber
@@ -421,5 +527,17 @@ class SettingViewModel @Inject constructor(
             return ReminderValidationError.OutOfRange
         }
         return ReminderValidationError.None
+    }
+
+    private fun validateQuickFillDuration(value: String): QuickFillDurationValidationError {
+        if (value.isBlank()) return QuickFillDurationValidationError.Empty
+        val parsed = value.toIntOrNull() ?: return QuickFillDurationValidationError.InvalidNumber
+        if (
+            parsed !in ClipboardImportPreferenceProvider.QUICK_FILL_HINT_DURATION_MIN_SECONDS..
+            ClipboardImportPreferenceProvider.QUICK_FILL_HINT_DURATION_MAX_SECONDS
+        ) {
+            return QuickFillDurationValidationError.OutOfRange
+        }
+        return QuickFillDurationValidationError.None
     }
 }

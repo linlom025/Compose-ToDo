@@ -73,6 +73,8 @@ class SharedTextTaskParserTest {
 
         assertEquals(first?.fingerprint, second?.fingerprint)
         assertNotEquals(first?.fingerprint, third?.fingerprint)
+        assertEquals("buy milk\n2 packs", first?.title)
+        assertEquals("", first?.note)
     }
 
     @Test

@@ -15,6 +15,8 @@ interface ISettingEnvironment {
     suspend fun setReminderLeadMinutes(minutes: Int)
     fun getQuickFillEnabled(): Flow<Boolean>
     suspend fun setQuickFillEnabled(enabled: Boolean)
+    fun getQuickFillHintDurationSeconds(): Flow<Int>
+    suspend fun setQuickFillHintDurationSeconds(seconds: Int)
     suspend fun rescheduleAllReminders()
     fun sendTestNotification(): TaskNotificationSendResult
 }

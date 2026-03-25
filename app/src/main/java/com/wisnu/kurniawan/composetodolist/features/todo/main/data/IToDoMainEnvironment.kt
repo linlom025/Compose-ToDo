@@ -14,6 +14,7 @@ interface IToDoMainEnvironment {
     fun getShowCompleted(): Flow<Boolean>
     fun getLastHandledClipboardFingerprint(): Flow<String>
     fun getClipboardAdaptiveBias(): Flow<Map<String, Int>>
+    fun getQuickFillHintDurationSeconds(): Flow<Int>
     suspend fun setShowCompleted(showCompleted: Boolean)
     suspend fun setLastHandledClipboardFingerprint(fingerprint: String)
     suspend fun recordClipboardPatternFeedback(patternKey: String, positive: Boolean)

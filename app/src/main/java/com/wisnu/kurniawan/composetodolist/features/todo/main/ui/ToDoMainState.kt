@@ -30,10 +30,9 @@ data class ToDoMainState(
     val createNote: TextFieldValue = TextFieldValue(),
     val showCreateDueDatePicker: Boolean = false,
     val showCreateDueTimePicker: Boolean = false,
-    val showClipboardImportDialog: Boolean = false,
-    val pendingClipboardCandidate: SharedTaskDraft? = null,
     val showClipboardSoftImportHint: Boolean = false,
     val pendingSoftClipboardCandidate: SharedTaskDraft? = null,
+    val quickFillHintDurationSeconds: Int = 5,
     val showDeleteTaskConfirmDialog: Boolean = false,
     val pendingDeleteTask: ToDoTask? = null,
 ) {

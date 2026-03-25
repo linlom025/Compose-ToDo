@@ -24,6 +24,7 @@ class ToDoMainViewModel @Inject constructor(
         initShowCompleted()
         initQuadrants()
         initQuadrantDisplayNames()
+        initQuickFillHintDuration()
         initClipboardAdaptiveBias()
         initSharedTaskDraft()
         initClipboardTaskCandidate()
@@ -151,28 +152,7 @@ class ToDoMainViewModel @Inject constructor(
                 resetCreateDialogState()
             }
 
-            ToDoMainAction.ConfirmImportClipboardCandidate -> {
-                viewModelScope.launch {
-                    val candidate = state.value.pendingClipboardCandidate ?: return@launch
-
-                    openCreateDialogWithPrefill(
-                        quadrant = TaskQuadrant.fromDbDefault(),
-                        taskName = candidate.title,
-                        note = candidate.note,
-                        isQuadrantLocked = false
-                    )
-                    consumeClipboardCandidate(candidate = candidate, positive = true)
-                }
-            }
-
-            ToDoMainAction.DismissImportClipboardCandidate -> {
-                viewModelScope.launch {
-                    val candidate = state.value.pendingClipboardCandidate ?: return@launch
-                    consumeClipboardCandidate(candidate = candidate, positive = false)
-                }
-            }
-
-            ToDoMainAction.ConfirmImportClipboardSoftCandidate -> {
+            ToDoMainAction.ConfirmImportClipboardHint -> {
                 viewModelScope.launch {
                     val candidate = state.value.pendingSoftClipboardCandidate ?: return@launch
                     openCreateDialogWithPrefill(
@@ -185,7 +165,7 @@ class ToDoMainViewModel @Inject constructor(
                 }
             }
 
-            ToDoMainAction.DismissImportClipboardSoftCandidate -> {
+            ToDoMainAction.DismissImportClipboardHint -> {
                 viewModelScope.launch {
                     val candidate = state.value.pendingSoftClipboardCandidate ?: return@launch
                     consumeClipboardCandidate(candidate = candidate, positive = false)
@@ -276,22 +256,10 @@ class ToDoMainViewModel @Inject constructor(
                 }
 
                 when (candidate.clipboardDecisionLevel) {
-                    ClipboardDecisionLevel.ACCEPT -> {
-                        setState {
-                            copy(
-                                showClipboardImportDialog = true,
-                                pendingClipboardCandidate = candidate,
-                                showClipboardSoftImportHint = false,
-                                pendingSoftClipboardCandidate = null
-                            )
-                        }
-                    }
-
+                    ClipboardDecisionLevel.ACCEPT,
                     ClipboardDecisionLevel.SOFT -> {
                         setState {
                             copy(
-                                showClipboardImportDialog = false,
-                                pendingClipboardCandidate = null,
                                 showClipboardSoftImportHint = true,
                                 pendingSoftClipboardCandidate = candidate
                             )
@@ -302,6 +270,14 @@ class ToDoMainViewModel @Inject constructor(
                         SharedTaskDraftRepository.consumeClipboardCandidate(candidate.id)
                     }
                 }
+            }
+        }
+    }
+
+    private fun initQuickFillHintDuration() {
+        viewModelScope.launch {
+            environment.getQuickFillHintDurationSeconds().collect { seconds ->
+                setState { copy(quickFillHintDurationSeconds = seconds) }
             }
         }
     }
@@ -382,8 +358,6 @@ class ToDoMainViewModel @Inject constructor(
         SharedTaskDraftRepository.consumeClipboardCandidate(candidate.id)
         setState {
             copy(
-                showClipboardImportDialog = false,
-                pendingClipboardCandidate = null,
                 showClipboardSoftImportHint = false,
                 pendingSoftClipboardCandidate = null
             )

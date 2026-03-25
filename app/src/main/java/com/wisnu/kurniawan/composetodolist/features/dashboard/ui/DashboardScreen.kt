@@ -98,10 +98,8 @@ fun DashboardScreen(
         },
         onConfirmDeleteTask = { toDoMainViewModel.dispatch(ToDoMainAction.ConfirmDeleteTask) },
         onDismissDeleteTask = { toDoMainViewModel.dispatch(ToDoMainAction.DismissDeleteTask) },
-        onConfirmClipboardImport = { toDoMainViewModel.dispatch(ToDoMainAction.ConfirmImportClipboardCandidate) },
-        onDismissClipboardImport = { toDoMainViewModel.dispatch(ToDoMainAction.DismissImportClipboardCandidate) },
-        onConfirmClipboardSoftImport = { toDoMainViewModel.dispatch(ToDoMainAction.ConfirmImportClipboardSoftCandidate) },
-        onDismissClipboardSoftImport = { toDoMainViewModel.dispatch(ToDoMainAction.DismissImportClipboardSoftCandidate) },
+        onConfirmClipboardHint = { toDoMainViewModel.dispatch(ToDoMainAction.ConfirmImportClipboardHint) },
+        onDismissClipboardHint = { toDoMainViewModel.dispatch(ToDoMainAction.DismissImportClipboardHint) },
     )
 }
 
@@ -142,10 +140,8 @@ private fun DashboardContent(
     onTaskSwipeToDelete: (ToDoTask) -> Unit,
     onConfirmDeleteTask: () -> Unit,
     onDismissDeleteTask: () -> Unit,
-    onConfirmClipboardImport: () -> Unit,
-    onDismissClipboardImport: () -> Unit,
-    onConfirmClipboardSoftImport: () -> Unit,
-    onDismissClipboardSoftImport: () -> Unit,
+    onConfirmClipboardHint: () -> Unit,
+    onDismissClipboardHint: () -> Unit,
 ) {
     PgPageLayout(horizontalPadding = 2.dp, topContentPadding = 2.dp) {
         Row(
@@ -242,10 +238,8 @@ private fun DashboardContent(
             onTaskSwipeToDelete = onTaskSwipeToDelete,
             onConfirmDeleteTask = onConfirmDeleteTask,
             onDismissDeleteTask = onDismissDeleteTask,
-            onConfirmClipboardImport = onConfirmClipboardImport,
-            onDismissClipboardImport = onDismissClipboardImport,
-            onConfirmClipboardSoftImport = onConfirmClipboardSoftImport,
-            onDismissClipboardSoftImport = onDismissClipboardSoftImport,
+            onConfirmClipboardHint = onConfirmClipboardHint,
+            onDismissClipboardHint = onDismissClipboardHint,
             onQuadrantTitleLongClick = { quadrant ->
                 onOpenDisplayNameDialog(quadrant.toEditTarget())
             }

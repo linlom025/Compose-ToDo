@@ -7,6 +7,7 @@ message UserClipboardImportPreference {
   string last_handled_fingerprint = 1;
   repeated ClipboardPatternFeedback pattern_feedbacks = 2;
   bool quick_fill_enabled = 3;
+  int32 quick_fill_hint_duration_seconds = 4;
 }
 
 message ClipboardPatternFeedback {

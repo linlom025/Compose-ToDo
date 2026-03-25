@@ -24,13 +24,12 @@ import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -63,7 +62,6 @@ import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.PgIconButtonVa
 import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.PgSecondaryButton
 import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.PgDatePickerDialog
 import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.PgTimePickerDialog
-import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.LocalPgSnackbarHostState
 import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.PgToDoItemCell
 import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.PgQuadrantSelectorChip
 import com.wisnu.kurniawan.composetodolist.foundation.uicomponent.itemInfoDisplayable
@@ -73,6 +71,7 @@ import com.wisnu.kurniawan.composetodolist.model.ToDoStatus
 import com.wisnu.kurniawan.composetodolist.model.ToDoTask
 import java.time.LocalDate
 import java.time.LocalTime
+import kotlinx.coroutines.delay
 
 @Composable
 fun ToDoMainScreen(
@@ -96,14 +95,9 @@ fun ToDoMainScreen(
     onConfirmDeleteTask: () -> Unit,
     onDismissDeleteTask: () -> Unit,
     onQuadrantTitleLongClick: (TaskQuadrant) -> Unit,
-    onConfirmClipboardImport: () -> Unit,
-    onDismissClipboardImport: () -> Unit,
-    onConfirmClipboardSoftImport: () -> Unit,
-    onDismissClipboardSoftImport: () -> Unit,
+    onConfirmClipboardHint: () -> Unit,
+    onDismissClipboardHint: () -> Unit,
 ) {
-    val snackbarHostState = LocalPgSnackbarHostState.current
-    val context = LocalContext.current
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -200,30 +194,13 @@ fun ToDoMainScreen(
         )
     }
 
-    if (state.showClipboardImportDialog) {
-        ClipboardImportDialog(
-            title = state.pendingClipboardCandidate?.title.orEmpty(),
-            onConfirm = onConfirmClipboardImport,
-            onDismiss = onDismissClipboardImport
+    if (state.showClipboardSoftImportHint) {
+        ClipboardImportHintOverlay(
+            title = state.pendingSoftClipboardCandidate?.title.orEmpty(),
+            durationSeconds = state.quickFillHintDurationSeconds,
+            onConfirm = onConfirmClipboardHint,
+            onDismiss = onDismissClipboardHint
         )
-    }
-
-    LaunchedEffect(state.showClipboardSoftImportHint, state.pendingSoftClipboardCandidate?.id) {
-        val candidate = state.pendingSoftClipboardCandidate ?: return@LaunchedEffect
-        val host = snackbarHostState ?: return@LaunchedEffect
-        if (!state.showClipboardSoftImportHint) return@LaunchedEffect
-
-        val result = host.showSnackbar(
-            message = context.getString(R.string.todo_clipboard_soft_import_message, candidate.title),
-            actionLabel = context.getString(R.string.todo_clipboard_soft_import_action),
-            duration = SnackbarDuration.Short
-        )
-
-        if (result == SnackbarResult.ActionPerformed) {
-            onConfirmClipboardSoftImport()
-        } else {
-            onDismissClipboardSoftImport()
-        }
     }
 }
 
@@ -572,13 +549,36 @@ private fun TaskQuadrant.toColor(): Color {
 }
 
 @Composable
-private fun ClipboardImportDialog(
+private fun ClipboardImportHintOverlay(
     title: String,
+    durationSeconds: Int,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    Dialog(onDismissRequest = onDismiss) {
+    val safeDurationSeconds = durationSeconds.coerceIn(3, 15)
+    val cardModifier = remember {
+        Modifier.pointerInput(Unit) {
+            detectTapGestures(onTap = {})
+        }
+    }
+
+    LaunchedEffect(title, safeDurationSeconds) {
+        if (title.isBlank()) return@LaunchedEffect
+        delay(safeDurationSeconds * 1_000L)
+        onDismiss()
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .pointerInput(title) {
+                detectTapGestures(onTap = { onDismiss() })
+            }
+            .padding(horizontal = 16.dp, vertical = 16.dp),
+        contentAlignment = Alignment.BottomCenter
+    ) {
         Surface(
+            modifier = cardModifier.fillMaxWidth(),
             shape = MaterialTheme.shapes.large,
             tonalElevation = 6.dp,
             color = MaterialTheme.colorScheme.surface
@@ -586,15 +586,11 @@ private fun ClipboardImportDialog(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 16.dp),
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Text(
-                    text = stringResource(R.string.todo_clipboard_import_title),
-                    style = MaterialTheme.typography.titleSmall
-                )
-                Text(
-                    text = stringResource(R.string.todo_clipboard_import_message, title),
+                    text = stringResource(R.string.todo_clipboard_soft_import_message, title),
                     style = MaterialTheme.typography.bodyMedium
                 )
 
@@ -604,7 +600,7 @@ private fun ClipboardImportDialog(
                         onClick = onDismiss
                     ) {
                         Text(
-                            text = stringResource(R.string.todo_clipboard_import_ignore),
+                            text = stringResource(R.string.todo_clipboard_soft_import_ignore),
                             color = MaterialTheme.colorScheme.onSecondary
                         )
                     }
@@ -613,7 +609,7 @@ private fun ClipboardImportDialog(
                         modifier = Modifier.weight(1f),
                         onClick = onConfirm
                     ) {
-                        Text(text = stringResource(R.string.todo_clipboard_import_confirm))
+                        Text(text = stringResource(R.string.todo_clipboard_soft_import_action))
                     }
                 }
             }

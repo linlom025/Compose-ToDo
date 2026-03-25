@@ -136,6 +136,11 @@ fun SettingScreen(
         onSaveReminderLeadMinutes = { viewModel.dispatch(SettingAction.SaveReminderLeadMinutes) },
         onResetReminderLeadMinutesDefault = { viewModel.dispatch(SettingAction.ResetReminderLeadMinutesDefault) },
         onToggleQuickFill = { viewModel.dispatch(SettingAction.ToggleQuickFill(it)) },
+        onOpenQuickFillDurationDialog = { viewModel.dispatch(SettingAction.OpenQuickFillDurationDialog) },
+        onCloseQuickFillDurationDialog = { viewModel.dispatch(SettingAction.CloseQuickFillDurationDialog) },
+        onChangeQuickFillDurationDraftSeconds = { viewModel.dispatch(SettingAction.ChangeQuickFillDurationDraftSeconds(it)) },
+        onSaveQuickFillDuration = { viewModel.dispatch(SettingAction.SaveQuickFillDuration) },
+        onResetQuickFillDurationDefault = { viewModel.dispatch(SettingAction.ResetQuickFillDurationDefault) },
         onConfirmSaveReminderAndClose = { viewModel.dispatch(SettingAction.ConfirmSaveReminderAndClose) },
         onDiscardReminderAndClose = { viewModel.dispatch(SettingAction.DiscardReminderAndClose) },
         onContinueReminderEditing = { viewModel.dispatch(SettingAction.ContinueReminderEditing) }
@@ -167,6 +172,11 @@ private fun SettingContent(
     onSaveReminderLeadMinutes: () -> Unit,
     onResetReminderLeadMinutesDefault: () -> Unit,
     onToggleQuickFill: (Boolean) -> Unit,
+    onOpenQuickFillDurationDialog: () -> Unit,
+    onCloseQuickFillDurationDialog: () -> Unit,
+    onChangeQuickFillDurationDraftSeconds: (String) -> Unit,
+    onSaveQuickFillDuration: () -> Unit,
+    onResetQuickFillDurationDefault: () -> Unit,
     onConfirmSaveReminderAndClose: () -> Unit,
     onDiscardReminderAndClose: () -> Unit,
     onContinueReminderEditing: () -> Unit,
@@ -252,6 +262,16 @@ private fun SettingContent(
                         )
                     }
                 )
+                if (state.appliedQuickFillEnabled) {
+                    SettingItemRow(
+                        title = stringResource(R.string.setting_quick_fill_hint_duration_title),
+                        value = stringResource(
+                            R.string.setting_quick_fill_hint_duration_current,
+                            state.appliedQuickFillHintDurationSeconds
+                        ),
+                        onClick = onOpenQuickFillDurationDialog
+                    )
+                }
                 SettingItemRow(
                     title = stringResource(R.string.setting_test_notification_title),
                     value = stringResource(R.string.setting_test_notification_subtitle),
@@ -306,6 +326,16 @@ private fun SettingContent(
             onSaveAndClose = onConfirmSaveReminderAndClose,
             onDiscard = onDiscardReminderAndClose,
             onContinueEdit = onContinueReminderEditing
+        )
+    }
+
+    if (state.showQuickFillDurationDialog) {
+        SettingQuickFillDurationDialog(
+            state = state,
+            onDismiss = onCloseQuickFillDurationDialog,
+            onChangeDraftSeconds = onChangeQuickFillDurationDraftSeconds,
+            onSave = onSaveQuickFillDuration,
+            onResetDefault = onResetQuickFillDurationDefault
         )
     }
 
@@ -606,6 +636,87 @@ private fun SettingReminderDialog(
 }
 
 @Composable
+private fun SettingQuickFillDurationDialog(
+    state: SettingState,
+    onDismiss: () -> Unit,
+    onChangeDraftSeconds: (String) -> Unit,
+    onSave: () -> Unit,
+    onResetDefault: () -> Unit,
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = MaterialTheme.shapes.large,
+            tonalElevation = 6.dp,
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.setting_quick_fill_hint_duration_title),
+                    style = MaterialTheme.typography.titleSmall
+                )
+
+                Text(
+                    text = stringResource(
+                        R.string.setting_quick_fill_hint_duration_current,
+                        state.appliedQuickFillHintDurationSeconds
+                    ),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                PgTextField(
+                    value = state.quickFillDurationDraftSecondsText,
+                    onValueChange = onChangeDraftSeconds,
+                    placeholderValue = stringResource(R.string.setting_quick_fill_hint_duration_input_placeholder),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Number,
+                        imeAction = ImeAction.Done
+                    ),
+                    singleLine = true,
+                    errorLabel = {
+                        Text(
+                            text = state.quickFillDurationValidationError.toText(),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    },
+                    isError = state.quickFillDurationValidationError != QuickFillDurationValidationError.None
+                )
+
+                Text(
+                    text = stringResource(R.string.setting_quick_fill_hint_duration_input_placeholder),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                PgSecondaryButton(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = onResetDefault
+                ) {
+                    Text(
+                        text = stringResource(R.string.setting_quick_fill_hint_duration_reset_default),
+                        color = MaterialTheme.colorScheme.onSecondary
+                    )
+                }
+
+                PgButton(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = onSave,
+                    enabled = state.quickFillDurationValidationError == QuickFillDurationValidationError.None
+                ) {
+                    Text(text = stringResource(R.string.todo_rename_list_positive))
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun FontValidationError.toText(): String {
     return when (this) {
         FontValidationError.None -> ""
@@ -622,6 +733,16 @@ private fun ReminderValidationError.toText(): String {
         ReminderValidationError.Empty -> stringResource(R.string.setting_reminder_lead_time_error_empty)
         ReminderValidationError.InvalidNumber -> stringResource(R.string.setting_reminder_lead_time_error_invalid)
         ReminderValidationError.OutOfRange -> stringResource(R.string.setting_reminder_lead_time_error_range)
+    }
+}
+
+@Composable
+private fun QuickFillDurationValidationError.toText(): String {
+    return when (this) {
+        QuickFillDurationValidationError.None -> ""
+        QuickFillDurationValidationError.Empty -> stringResource(R.string.setting_quick_fill_hint_duration_error_empty)
+        QuickFillDurationValidationError.InvalidNumber -> stringResource(R.string.setting_quick_fill_hint_duration_error_invalid)
+        QuickFillDurationValidationError.OutOfRange -> stringResource(R.string.setting_quick_fill_hint_duration_error_range)
     }
 }
 

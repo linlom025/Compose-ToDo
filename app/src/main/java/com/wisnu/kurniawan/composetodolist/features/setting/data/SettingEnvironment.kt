@@ -68,6 +68,14 @@ class SettingEnvironment @Inject constructor(
         clipboardImportPreferenceProvider.setQuickFillEnabled(enabled)
     }
 
+    override fun getQuickFillHintDurationSeconds(): Flow<Int> {
+        return clipboardImportPreferenceProvider.getQuickFillHintDurationSeconds()
+    }
+
+    override suspend fun setQuickFillHintDurationSeconds(seconds: Int) {
+        clipboardImportPreferenceProvider.setQuickFillHintDurationSeconds(seconds)
+    }
+
     override suspend fun rescheduleAllReminders() {
         val now = dateTimeProvider.now()
         val leadMinutes = reminderPreferenceProvider.getReminderLeadMinutes().first()

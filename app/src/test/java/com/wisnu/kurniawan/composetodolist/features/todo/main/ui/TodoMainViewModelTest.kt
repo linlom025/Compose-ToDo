@@ -153,24 +153,7 @@ class ToDoMainViewModelTest : BaseViewModelTest() {
     }
 
     @Test
-    fun consumeSharedDraft_openDialogWithPrefillAndConsumeOnce() = runTest {
-        SharedTaskDraftRepository.clear()
-        val viewModel = ToDoMainViewModel(FakeToDoMainEnvironment())
-        advanceUntilIdle()
-
-        SharedTaskDraftRepository.publishFromShareText("title\nnote")
-        advanceUntilIdle()
-
-        assertTrue(viewModel.state.value.isCreateDialogVisible)
-        assertEquals("title", viewModel.state.value.createTaskName.text)
-        assertEquals("note", viewModel.state.value.createNote.text)
-        assertEquals(TaskQuadrant.fromDbDefault(), viewModel.state.value.createQuadrant)
-        assertFalse(viewModel.state.value.isCreateQuadrantLocked)
-        assertNull(SharedTaskDraftRepository.pendingDraft.value)
-    }
-
-    @Test
-    fun consumeClipboardCandidate_accept_showConfirmDialog() = runTest {
+    fun consumeClipboardCandidate_accept_showHintOnly() = runTest {
         SharedTaskDraftRepository.clear()
         val viewModel = ToDoMainViewModel(FakeToDoMainEnvironment())
         advanceUntilIdle()
@@ -178,9 +161,8 @@ class ToDoMainViewModelTest : BaseViewModelTest() {
         SharedTaskDraftRepository.publishFromClipboardText("今天下班前提交周报")
         advanceUntilIdle()
 
-        assertTrue(viewModel.state.value.showClipboardImportDialog)
-        assertFalse(viewModel.state.value.showClipboardSoftImportHint)
-        assertEquals("今天下班前提交周报", viewModel.state.value.pendingClipboardCandidate?.title)
+        assertTrue(viewModel.state.value.showClipboardSoftImportHint)
+        assertEquals("今天下班前提交周报", viewModel.state.value.pendingSoftClipboardCandidate?.title)
     }
 
     @Test
@@ -189,12 +171,11 @@ class ToDoMainViewModelTest : BaseViewModelTest() {
         val viewModel = ToDoMainViewModel(FakeToDoMainEnvironment())
         advanceUntilIdle()
 
-        SharedTaskDraftRepository.publishFromClipboardText("整理一下资料")
+        SharedTaskDraftRepository.publishFromClipboardText("今天下班前整理一下资料")
         advanceUntilIdle()
 
-        assertFalse(viewModel.state.value.showClipboardImportDialog)
         assertTrue(viewModel.state.value.showClipboardSoftImportHint)
-        assertEquals("整理一下资料", viewModel.state.value.pendingSoftClipboardCandidate?.title)
+        assertEquals("今天下班前整理一下资料", viewModel.state.value.pendingSoftClipboardCandidate?.title)
     }
 
     @Test
@@ -206,13 +187,13 @@ class ToDoMainViewModelTest : BaseViewModelTest() {
 
         val candidate = SharedTaskDraftRepository.publishFromClipboardText("finish report\nbefore 6pm")
         advanceUntilIdle()
-        viewModel.dispatch(ToDoMainAction.ConfirmImportClipboardCandidate)
+        viewModel.dispatch(ToDoMainAction.ConfirmImportClipboardHint)
         advanceUntilIdle()
 
         assertTrue(viewModel.state.value.isCreateDialogVisible)
-        assertFalse(viewModel.state.value.showClipboardImportDialog)
-        assertEquals("finish report", viewModel.state.value.createTaskName.text)
-        assertEquals("before 6pm", viewModel.state.value.createNote.text)
+        assertFalse(viewModel.state.value.showClipboardSoftImportHint)
+        assertEquals("finish report\nbefore 6pm", viewModel.state.value.createTaskName.text)
+        assertEquals("", viewModel.state.value.createNote.text)
         assertFalse(viewModel.state.value.isCreateQuadrantLocked)
         viewModel.dispatch(ToDoMainAction.ChangeCreateQuadrant(TaskQuadrant.Q4))
         advanceUntilIdle()
@@ -231,7 +212,7 @@ class ToDoMainViewModelTest : BaseViewModelTest() {
 
         val candidate = SharedTaskDraftRepository.publishFromClipboardText("整理一下资料")
         advanceUntilIdle()
-        viewModel.dispatch(ToDoMainAction.DismissImportClipboardSoftCandidate)
+        viewModel.dispatch(ToDoMainAction.DismissImportClipboardHint)
         advanceUntilIdle()
 
         assertFalse(viewModel.state.value.showClipboardSoftImportHint)
@@ -250,9 +231,7 @@ class ToDoMainViewModelTest : BaseViewModelTest() {
         val viewModel = ToDoMainViewModel(environment)
         advanceUntilIdle()
 
-        assertFalse(viewModel.state.value.showClipboardImportDialog)
         assertFalse(viewModel.state.value.showClipboardSoftImportHint)
-        assertNull(viewModel.state.value.pendingClipboardCandidate)
         assertNull(viewModel.state.value.pendingSoftClipboardCandidate)
         assertNull(SharedTaskDraftRepository.pendingClipboardCandidate.value)
     }
@@ -280,6 +259,8 @@ class ToDoMainViewModelTest : BaseViewModelTest() {
         override fun getLastHandledClipboardFingerprint(): Flow<String> = lastHandledClipboardFingerprintFlow
 
         override fun getClipboardAdaptiveBias(): Flow<Map<String, Int>> = adaptiveBiasFlow
+
+        override fun getQuickFillHintDurationSeconds(): Flow<Int> = MutableStateFlow(5)
 
         override suspend fun setShowCompleted(showCompleted: Boolean) {
             savedShowCompletedValues.add(showCompleted)

@@ -25,7 +25,8 @@ class SettingViewModelTest : BaseViewModelTest() {
             initialTheme = Theme.SUNRISE,
             initialFontPercent = 130,
             initialReminderMinutes = 25,
-            initialQuickFillEnabled = true
+            initialQuickFillEnabled = true,
+            initialQuickFillHintDurationSeconds = 9
         )
         val viewModel = SettingViewModel(fakeEnvironment)
 
@@ -37,6 +38,7 @@ class SettingViewModelTest : BaseViewModelTest() {
         Assert.assertEquals(25, viewModel.state.value.appliedReminderLeadMinutes)
         Assert.assertEquals("25", viewModel.state.value.reminderDraftMinutesText)
         Assert.assertTrue(viewModel.state.value.appliedQuickFillEnabled)
+        Assert.assertEquals(9, viewModel.state.value.appliedQuickFillHintDurationSeconds)
     }
 
     @Test
@@ -213,12 +215,29 @@ class SettingViewModelTest : BaseViewModelTest() {
         Assert.assertFalse(viewModel.state.value.appliedQuickFillEnabled)
     }
 
+    @Test
+    fun saveQuickFillHintDuration_updateStateAndPersist() = runTest {
+        val fakeEnvironment = FakeSettingEnvironment(initialQuickFillHintDurationSeconds = 5)
+        val viewModel = SettingViewModel(fakeEnvironment)
+        advanceUntilIdle()
+
+        viewModel.dispatch(SettingAction.OpenQuickFillDurationDialog)
+        viewModel.dispatch(SettingAction.ChangeQuickFillDurationDraftSeconds("12"))
+        viewModel.dispatch(SettingAction.SaveQuickFillDuration)
+        advanceUntilIdle()
+
+        Assert.assertEquals(12, fakeEnvironment.quickFillHintDurationFlow.value)
+        Assert.assertEquals(12, viewModel.state.value.appliedQuickFillHintDurationSeconds)
+        Assert.assertFalse(viewModel.state.value.showQuickFillDurationDialog)
+    }
+
     private class FakeSettingEnvironment(
         initialTheme: Theme = Theme.SYSTEM,
         initialFontPercent: Int = 100,
         initialAuthGateEnabled: Boolean = false,
         initialReminderMinutes: Int = 15,
         initialQuickFillEnabled: Boolean = false,
+        initialQuickFillHintDurationSeconds: Int = 5,
         private val notificationResult: TaskNotificationSendResult = TaskNotificationSendResult.SENT,
     ) : ISettingEnvironment {
         val themeFlow = MutableStateFlow(initialTheme)
@@ -226,6 +245,7 @@ class SettingViewModelTest : BaseViewModelTest() {
         val authGateFlow = MutableStateFlow(initialAuthGateEnabled)
         val reminderLeadFlow = MutableStateFlow(initialReminderMinutes)
         val quickFillFlow = MutableStateFlow(initialQuickFillEnabled)
+        val quickFillHintDurationFlow = MutableStateFlow(initialQuickFillHintDurationSeconds)
         var rescheduleCalledCount = 0
 
         override fun getTheme(): Flow<Theme> = themeFlow
@@ -256,6 +276,12 @@ class SettingViewModelTest : BaseViewModelTest() {
 
         override suspend fun setQuickFillEnabled(enabled: Boolean) {
             quickFillFlow.emit(enabled)
+        }
+
+        override fun getQuickFillHintDurationSeconds(): Flow<Int> = quickFillHintDurationFlow
+
+        override suspend fun setQuickFillHintDurationSeconds(seconds: Int) {
+            quickFillHintDurationFlow.emit(seconds)
         }
 
         override suspend fun rescheduleAllReminders() {

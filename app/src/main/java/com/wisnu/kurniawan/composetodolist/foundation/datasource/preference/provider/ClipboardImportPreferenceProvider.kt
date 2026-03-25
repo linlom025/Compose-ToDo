@@ -73,6 +73,21 @@ class ClipboardImportPreferenceProvider @Inject constructor(
             .flowOn(dispatcher)
     }
 
+    fun getQuickFillHintDurationSeconds(): Flow<Int> {
+        return clipboardImportDataStore.data
+            .map { preference ->
+                clampQuickFillHintDuration(preference.quickFillHintDurationSeconds)
+            }
+            .catch { throwable ->
+                if (throwable is IOException) {
+                    emit(DEFAULT_QUICK_FILL_HINT_DURATION_SECONDS)
+                } else {
+                    throw throwable
+                }
+            }
+            .flowOn(dispatcher)
+    }
+
     suspend fun setLastHandledClipboardFingerprint(fingerprint: String) {
         withContext(dispatcher) {
             clipboardImportDataStore.updateData {
@@ -88,6 +103,16 @@ class ClipboardImportPreferenceProvider @Inject constructor(
             clipboardImportDataStore.updateData {
                 it.toBuilder()
                     .setQuickFillEnabled(enabled)
+                    .build()
+            }
+        }
+    }
+
+    suspend fun setQuickFillHintDurationSeconds(seconds: Int) {
+        withContext(dispatcher) {
+            clipboardImportDataStore.updateData {
+                it.toBuilder()
+                    .setQuickFillHintDurationSeconds(clampQuickFillHintDuration(seconds))
                     .build()
             }
         }
@@ -141,7 +166,18 @@ class ClipboardImportPreferenceProvider @Inject constructor(
     companion object {
         const val DEFAULT_FINGERPRINT = ""
         const val DEFAULT_QUICK_FILL_ENABLED = false
+        const val QUICK_FILL_HINT_DURATION_MIN_SECONDS = 3
+        const val QUICK_FILL_HINT_DURATION_MAX_SECONDS = 15
+        const val DEFAULT_QUICK_FILL_HINT_DURATION_SECONDS = 5
         private const val STREAK_THRESHOLD = 3
         private const val MAX_PATTERN_FEEDBACK_SIZE = 128
+
+        private fun clampQuickFillHintDuration(seconds: Int): Int {
+            if (seconds == 0) return DEFAULT_QUICK_FILL_HINT_DURATION_SECONDS
+            return seconds.coerceIn(
+                QUICK_FILL_HINT_DURATION_MIN_SECONDS,
+                QUICK_FILL_HINT_DURATION_MAX_SECONDS
+            )
+        }
     }
 }

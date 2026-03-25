@@ -118,7 +118,6 @@ object SharedTextTaskParser {
 
         val title = lines.first()
         val normalizedText = lines.joinToString("\n")
-        val note = lines.drop(1).joinToString("\n").trim()
 
         val hardRejectReasons = buildList {
             if (title.length < MIN_TITLE_LENGTH) add(ReasonCode.TITLE_TOO_SHORT)
@@ -204,8 +203,8 @@ object SharedTextTaskParser {
         } else {
             val contentFingerprint = calculateFingerprint(normalizedText)
             ParsedClipboardTaskText(
-                title = title,
-                note = note,
+                title = normalizedText,
+                note = "",
                 fingerprint = contentFingerprint,
                 contentFingerprint = contentFingerprint,
                 patternKey = patternKey,
