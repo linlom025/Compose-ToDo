@@ -14,12 +14,12 @@ import com.wisnu.kurniawan.composetodolist.features.setting.ui.SettingViewModel
 import com.wisnu.kurniawan.composetodolist.features.todo.main.ui.ToDoMainViewModel
 
 fun NavGraphBuilder.HomeNavHost(
-    navController: NavHostController
+    navController: NavHostController,
+    toDoMainViewModel: ToDoMainViewModel,
 ) {
     navigation(startDestination = HomeFlow.DashboardScreen.route, route = HomeFlow.Root.route) {
         composable(HomeFlow.DashboardScreen.route) {
             val viewModel = hiltViewModel<DashboardViewModel>()
-            val toDoMainViewModel = hiltViewModel<ToDoMainViewModel>()
             DashboardScreen(
                 viewModel = viewModel,
                 toDoMainViewModel = toDoMainViewModel,
@@ -53,12 +53,12 @@ fun NavGraphBuilder.HomeNavHost(
 fun NavGraphBuilder.HomeTabletNavHost(
     navController: NavHostController,
     navControllerLeft: NavHostController,
-    navControllerRight: NavHostController
+    navControllerRight: NavHostController,
+    toDoMainViewModel: ToDoMainViewModel,
 ) {
     navigation(startDestination = HomeFlow.DashboardScreen.route, route = HomeFlow.Root.route) {
         composable(HomeFlow.DashboardScreen.route) {
             val viewModel = hiltViewModel<DashboardViewModel>()
-            val toDoMainViewModel = hiltViewModel<ToDoMainViewModel>()
 
             DashboardScreen(
                 viewModel = viewModel,

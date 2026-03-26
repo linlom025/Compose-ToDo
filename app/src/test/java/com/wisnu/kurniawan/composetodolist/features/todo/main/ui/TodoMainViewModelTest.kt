@@ -5,6 +5,7 @@ import com.wisnu.kurniawan.composetodolist.BaseViewModelTest
 import com.wisnu.kurniawan.composetodolist.DateFactory
 import com.wisnu.kurniawan.composetodolist.features.todo.main.data.IToDoMainEnvironment
 import com.wisnu.kurniawan.composetodolist.features.todo.main.data.QuadrantTask
+import com.wisnu.kurniawan.composetodolist.foundation.share.ClipboardDecisionLevel
 import com.wisnu.kurniawan.composetodolist.foundation.share.SharedTaskDraftRepository
 import com.wisnu.kurniawan.composetodolist.foundation.wrapper.DateTimeProvider
 import com.wisnu.kurniawan.composetodolist.foundation.wrapper.DateTimeProviderImpl
@@ -29,6 +30,9 @@ import kotlin.time.ExperimentalTime
 @ExperimentalTime
 @ExperimentalCoroutinesApi
 class ToDoMainViewModelTest : BaseViewModelTest() {
+    private fun newViewModel(environment: FakeToDoMainEnvironment = FakeToDoMainEnvironment()): ToDoMainViewModel {
+        return ToDoMainViewModel(environment)
+    }
 
     @Test
     fun init() = runTest {
@@ -43,7 +47,7 @@ class ToDoMainViewModelTest : BaseViewModelTest() {
         val environment = FakeToDoMainEnvironment(
             tasks = listOf(QuadrantTask(task, "system_quadrant_q1"))
         )
-        val viewModel = ToDoMainViewModel(environment)
+        val viewModel = newViewModel(environment)
 
         advanceUntilIdle()
 
@@ -54,7 +58,7 @@ class ToDoMainViewModelTest : BaseViewModelTest() {
     @Test
     fun openCreateDialog() = runTest {
         SharedTaskDraftRepository.clear()
-        val viewModel = ToDoMainViewModel(FakeToDoMainEnvironment())
+        val viewModel = newViewModel(FakeToDoMainEnvironment())
 
         viewModel.dispatch(ToDoMainAction.OpenCreateDialog(TaskQuadrant.Q4))
         advanceUntilIdle()
@@ -68,7 +72,7 @@ class ToDoMainViewModelTest : BaseViewModelTest() {
     fun confirmCreate_whenNameBlank_notCreateTask() = runTest {
         SharedTaskDraftRepository.clear()
         val environment = FakeToDoMainEnvironment()
-        val viewModel = ToDoMainViewModel(environment)
+        val viewModel = newViewModel(environment)
 
         viewModel.dispatch(ToDoMainAction.OpenCreateDialog(TaskQuadrant.Q2))
         viewModel.dispatch(ToDoMainAction.ConfirmCreate)
@@ -82,7 +86,7 @@ class ToDoMainViewModelTest : BaseViewModelTest() {
     fun confirmCreate_whenNameValid_createTaskAndResetState() = runTest {
         SharedTaskDraftRepository.clear()
         val environment = FakeToDoMainEnvironment()
-        val viewModel = ToDoMainViewModel(environment)
+        val viewModel = newViewModel(environment)
 
         viewModel.dispatch(ToDoMainAction.OpenCreateDialog(TaskQuadrant.Q3))
         viewModel.dispatch(ToDoMainAction.ChangeCreateTaskName(TextFieldValue("  test task  ")))
@@ -100,7 +104,7 @@ class ToDoMainViewModelTest : BaseViewModelTest() {
     fun dismissCreateDialog_clearStateWithoutCreateTask() = runTest {
         SharedTaskDraftRepository.clear()
         val environment = FakeToDoMainEnvironment()
-        val viewModel = ToDoMainViewModel(environment)
+        val viewModel = newViewModel(environment)
 
         viewModel.dispatch(ToDoMainAction.OpenCreateDialog(TaskQuadrant.Q1))
         viewModel.dispatch(ToDoMainAction.ChangeCreateTaskName(TextFieldValue("will cancel")))
@@ -118,7 +122,7 @@ class ToDoMainViewModelTest : BaseViewModelTest() {
     fun init_readShowCompletedFromEnvironment() = runTest {
         SharedTaskDraftRepository.clear()
         val environment = FakeToDoMainEnvironment(showCompleted = true)
-        val viewModel = ToDoMainViewModel(environment)
+        val viewModel = newViewModel(environment)
 
         advanceUntilIdle()
 
@@ -129,7 +133,7 @@ class ToDoMainViewModelTest : BaseViewModelTest() {
     fun toggleShowCompleted_updateStateAndPersist() = runTest {
         SharedTaskDraftRepository.clear()
         val environment = FakeToDoMainEnvironment(showCompleted = false)
-        val viewModel = ToDoMainViewModel(environment)
+        val viewModel = newViewModel(environment)
         advanceUntilIdle()
 
         viewModel.dispatch(ToDoMainAction.ToggleShowCompleted)
@@ -142,7 +146,7 @@ class ToDoMainViewModelTest : BaseViewModelTest() {
     @Test
     fun changeCreateQuadrant_whenLocked_ignoreAction() = runTest {
         SharedTaskDraftRepository.clear()
-        val viewModel = ToDoMainViewModel(FakeToDoMainEnvironment())
+        val viewModel = newViewModel(FakeToDoMainEnvironment())
         viewModel.dispatch(ToDoMainAction.OpenCreateDialog(TaskQuadrant.Q1))
         advanceUntilIdle()
 
@@ -153,9 +157,9 @@ class ToDoMainViewModelTest : BaseViewModelTest() {
     }
 
     @Test
-    fun consumeClipboardCandidate_accept_showHintOnly() = runTest {
+    fun consumeClipboardCandidate_accept_openCreateDirectly() = runTest {
         SharedTaskDraftRepository.clear()
-        val viewModel = ToDoMainViewModel(FakeToDoMainEnvironment())
+        val viewModel = newViewModel(FakeToDoMainEnvironment())
         advanceUntilIdle()
 
         SharedTaskDraftRepository.publishFromClipboardText("今天下班前提交周报")
@@ -166,23 +170,24 @@ class ToDoMainViewModelTest : BaseViewModelTest() {
     }
 
     @Test
-    fun consumeClipboardCandidate_soft_showHintOnly() = runTest {
+    fun consumeClipboardCandidate_soft_openCreateDirectly() = runTest {
         SharedTaskDraftRepository.clear()
-        val viewModel = ToDoMainViewModel(FakeToDoMainEnvironment())
+        val viewModel = newViewModel(FakeToDoMainEnvironment())
         advanceUntilIdle()
 
-        SharedTaskDraftRepository.publishFromClipboardText("今天下班前整理一下资料")
+        val candidate = SharedTaskDraftRepository.publishFromClipboardText("remember buy milk")
         advanceUntilIdle()
 
+        assertEquals(ClipboardDecisionLevel.SOFT, candidate?.clipboardDecisionLevel)
         assertTrue(viewModel.state.value.showClipboardSoftImportHint)
-        assertEquals("今天下班前整理一下资料", viewModel.state.value.pendingSoftClipboardCandidate?.title)
+        assertEquals("remember buy milk", viewModel.state.value.pendingSoftClipboardCandidate?.title)
     }
 
     @Test
-    fun confirmClipboardCandidate_openCreateAndPersistFingerprint() = runTest {
+    fun consumeClipboardCandidate_openCreateAndPersistFingerprint() = runTest {
         SharedTaskDraftRepository.clear()
         val environment = FakeToDoMainEnvironment()
-        val viewModel = ToDoMainViewModel(environment)
+        val viewModel = newViewModel(environment)
         advanceUntilIdle()
 
         val candidate = SharedTaskDraftRepository.publishFromClipboardText("finish report\nbefore 6pm")
@@ -198,26 +203,27 @@ class ToDoMainViewModelTest : BaseViewModelTest() {
         viewModel.dispatch(ToDoMainAction.ChangeCreateQuadrant(TaskQuadrant.Q4))
         advanceUntilIdle()
         assertEquals(TaskQuadrant.Q4, viewModel.state.value.createQuadrant)
-        assertEquals(listOf(candidate?.contentFingerprint), environment.savedClipboardFingerprints)
+        assertEquals(listOf(candidate?.fingerprint), environment.savedClipboardFingerprints)
         assertEquals(listOf(candidate?.patternKey to true), environment.savedPatternFeedbacks)
         assertNull(SharedTaskDraftRepository.pendingClipboardCandidate.value)
     }
 
     @Test
-    fun dismissClipboardSoftCandidate_recordNegativeFeedback() = runTest {
+    fun dismissClipboardSoftCandidateAction_noopAfterHintRemoved() = runTest {
         SharedTaskDraftRepository.clear()
         val environment = FakeToDoMainEnvironment()
-        val viewModel = ToDoMainViewModel(environment)
+        val viewModel = newViewModel(environment)
         advanceUntilIdle()
 
-        val candidate = SharedTaskDraftRepository.publishFromClipboardText("整理一下资料")
+        SharedTaskDraftRepository.publishFromClipboardText("今天下班前提交周报")
         advanceUntilIdle()
         viewModel.dispatch(ToDoMainAction.DismissImportClipboardHint)
         advanceUntilIdle()
 
         assertFalse(viewModel.state.value.showClipboardSoftImportHint)
-        assertEquals(listOf(candidate?.contentFingerprint), environment.savedClipboardFingerprints)
-        assertEquals(listOf(candidate?.patternKey to false), environment.savedPatternFeedbacks)
+        assertEquals(1, environment.savedClipboardFingerprints.size)
+        assertEquals(1, environment.savedPatternFeedbacks.size)
+        assertEquals(false, environment.savedPatternFeedbacks.first().second)
         assertNull(SharedTaskDraftRepository.pendingClipboardCandidate.value)
     }
 
@@ -226,14 +232,82 @@ class ToDoMainViewModelTest : BaseViewModelTest() {
         SharedTaskDraftRepository.clear()
         val existing = SharedTaskDraftRepository.publishFromClipboardText("same title\nsame note")
         val environment = FakeToDoMainEnvironment(
-            lastHandledClipboardFingerprint = existing?.contentFingerprint.orEmpty()
+            lastHandledClipboardFingerprint = existing?.fingerprint.orEmpty()
         )
-        val viewModel = ToDoMainViewModel(environment)
+        val viewModel = newViewModel(environment)
         advanceUntilIdle()
 
         assertFalse(viewModel.state.value.showClipboardSoftImportHint)
         assertNull(viewModel.state.value.pendingSoftClipboardCandidate)
         assertNull(SharedTaskDraftRepository.pendingClipboardCandidate.value)
+    }
+
+    @Test
+    fun consumeClipboardCandidate_whenSameContentCopiedAgain_openAgain() = runTest {
+        SharedTaskDraftRepository.clear()
+        val firstCopy = SharedTaskDraftRepository.publishFromClipboardText(
+            rawText = "finish report\nbefore 6pm",
+            copyEventMarker = "evt-1"
+        )
+        val environment = FakeToDoMainEnvironment(
+            lastHandledClipboardFingerprint = firstCopy?.fingerprint.orEmpty()
+        )
+        val viewModel = newViewModel(environment)
+        advanceUntilIdle()
+        assertFalse(viewModel.state.value.showClipboardSoftImportHint)
+
+        SharedTaskDraftRepository.publishFromClipboardText(
+            rawText = "finish report\nbefore 6pm",
+            copyEventMarker = "evt-2"
+        )
+        advanceUntilIdle()
+
+        assertTrue(viewModel.state.value.showClipboardSoftImportHint)
+        assertEquals("finish report\nbefore 6pm", viewModel.state.value.pendingSoftClipboardCandidate?.title)
+    }
+
+    @Test
+    fun dismissClipboardSoftCandidate_whenSameSoftContentCopiedAgain_showHintAgain() = runTest {
+        SharedTaskDraftRepository.clear()
+        val environment = FakeToDoMainEnvironment()
+        val viewModel = newViewModel(environment)
+        advanceUntilIdle()
+
+        val firstCandidate = SharedTaskDraftRepository.publishFromClipboardText(
+            rawText = "remember buy milk",
+            copyEventMarker = "evt-soft-1"
+        )
+        advanceUntilIdle()
+        assertEquals(ClipboardDecisionLevel.SOFT, firstCandidate?.clipboardDecisionLevel)
+        assertTrue(viewModel.state.value.showClipboardSoftImportHint)
+
+        viewModel.dispatch(ToDoMainAction.DismissImportClipboardHint)
+        advanceUntilIdle()
+        assertFalse(viewModel.state.value.showClipboardSoftImportHint)
+
+        val secondCandidate = SharedTaskDraftRepository.publishFromClipboardText(
+            rawText = "remember buy milk",
+            copyEventMarker = "evt-soft-2"
+        )
+        advanceUntilIdle()
+
+        assertEquals(ClipboardDecisionLevel.SOFT, secondCandidate?.clipboardDecisionLevel)
+        assertTrue(viewModel.state.value.showClipboardSoftImportHint)
+        assertEquals("remember buy milk", viewModel.state.value.pendingSoftClipboardCandidate?.title)
+    }
+
+    @Test
+    fun consumeClipboardCandidate_globalHintStillVisibleWithoutDashboardGate() = runTest {
+        SharedTaskDraftRepository.clear()
+        val environment = FakeToDoMainEnvironment()
+        val viewModel = newViewModel(environment)
+        advanceUntilIdle()
+
+        SharedTaskDraftRepository.publishFromClipboardText("今天下班前提交周报")
+        advanceUntilIdle()
+
+        assertTrue(viewModel.state.value.showClipboardSoftImportHint)
+        assertEquals("今天下班前提交周报", viewModel.state.value.pendingSoftClipboardCandidate?.title)
     }
 
     private class FakeToDoMainEnvironment(
@@ -300,3 +374,4 @@ class ToDoMainViewModelTest : BaseViewModelTest() {
         override suspend fun deleteTask(task: ToDoTask) = Unit
     }
 }
+

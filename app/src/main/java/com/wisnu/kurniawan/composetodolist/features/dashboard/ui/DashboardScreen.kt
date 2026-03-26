@@ -98,8 +98,6 @@ fun DashboardScreen(
         },
         onConfirmDeleteTask = { toDoMainViewModel.dispatch(ToDoMainAction.ConfirmDeleteTask) },
         onDismissDeleteTask = { toDoMainViewModel.dispatch(ToDoMainAction.DismissDeleteTask) },
-        onConfirmClipboardHint = { toDoMainViewModel.dispatch(ToDoMainAction.ConfirmImportClipboardHint) },
-        onDismissClipboardHint = { toDoMainViewModel.dispatch(ToDoMainAction.DismissImportClipboardHint) },
     )
 }
 
@@ -140,8 +138,6 @@ private fun DashboardContent(
     onTaskSwipeToDelete: (ToDoTask) -> Unit,
     onConfirmDeleteTask: () -> Unit,
     onDismissDeleteTask: () -> Unit,
-    onConfirmClipboardHint: () -> Unit,
-    onDismissClipboardHint: () -> Unit,
 ) {
     PgPageLayout(horizontalPadding = 2.dp, topContentPadding = 2.dp) {
         Row(
@@ -238,8 +234,6 @@ private fun DashboardContent(
             onTaskSwipeToDelete = onTaskSwipeToDelete,
             onConfirmDeleteTask = onConfirmDeleteTask,
             onDismissDeleteTask = onDismissDeleteTask,
-            onConfirmClipboardHint = onConfirmClipboardHint,
-            onDismissClipboardHint = onDismissClipboardHint,
             onQuadrantTitleLongClick = { quadrant ->
                 onOpenDisplayNameDialog(quadrant.toEditTarget())
             }

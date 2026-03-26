@@ -6,12 +6,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import java.util.concurrent.atomic.AtomicLong
 
 object SharedTaskDraftRepository {
-    private const val SOFT_COOLDOWN_MILLIS = 20_000L
-
     private val nextId = AtomicLong(1L)
     private val pendingDraftMutable = MutableStateFlow<SharedTaskDraft?>(null)
     private val pendingClipboardCandidateMutable = MutableStateFlow<SharedTaskDraft?>(null)
-    private val recentPublishMillisByContentFingerprint = mutableMapOf<String, Long>()
     val pendingDraft: StateFlow<SharedTaskDraft?> = pendingDraftMutable.asStateFlow()
     val pendingClipboardCandidate: StateFlow<SharedTaskDraft?> = pendingClipboardCandidateMutable.asStateFlow()
 
@@ -36,9 +33,6 @@ object SharedTaskDraftRepository {
     ): SharedTaskDraft? {
         val decision = SharedTextTaskParser.evaluateClipboard(rawText)
         val parsed = decision.parsedDraft ?: return null
-        if (decision.level == ClipboardDecisionLevel.SOFT && isWithinSoftCooldown(parsed.contentFingerprint)) {
-            return null
-        }
 
         val uniqueFingerprint = if (copyEventMarker.isBlank()) {
             parsed.fingerprint
@@ -62,7 +56,6 @@ object SharedTaskDraftRepository {
             clipboardReasons = parsed.decisionReasons
         )
         pendingClipboardCandidateMutable.value = draft
-        recentPublishMillisByContentFingerprint[parsed.contentFingerprint] = System.currentTimeMillis()
         return draft
     }
 
@@ -81,13 +74,5 @@ object SharedTaskDraftRepository {
     fun clear() {
         pendingDraftMutable.value = null
         pendingClipboardCandidateMutable.value = null
-        recentPublishMillisByContentFingerprint.clear()
-    }
-
-    private fun isWithinSoftCooldown(contentFingerprint: String): Boolean {
-        if (contentFingerprint.isBlank()) return false
-        val now = System.currentTimeMillis()
-        val previous = recentPublishMillisByContentFingerprint[contentFingerprint] ?: return false
-        return (now - previous) < SOFT_COOLDOWN_MILLIS
     }
 }

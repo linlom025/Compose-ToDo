@@ -1,5 +1,6 @@
-package com.wisnu.kurniawan.composetodolist.features.todo.main.ui
+﻿package com.wisnu.kurniawan.composetodolist.features.todo.main.ui
 
+import android.util.Log
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.viewModelScope
 import com.wisnu.foundation.coreviewmodel.StatefulViewModel
@@ -246,11 +247,17 @@ class ToDoMainViewModel @Inject constructor(
                 candidate ?: return@collect
 
                 val lastHandledFingerprint = environment.getLastHandledClipboardFingerprint().first()
-                val handledFingerprint = candidate.contentFingerprint.ifBlank { candidate.fingerprint }
-                if (
-                    handledFingerprint == lastHandledFingerprint ||
-                    candidate.fingerprint == lastHandledFingerprint
-                ) {
+                val handledFingerprint = candidate.fingerprint
+                val isLegacyMarker = handledFingerprint.contains(":legacy:")
+                Log.d(
+                    QUICK_FILL_LOG_TAG,
+                    "candidate_received candidate=${candidate.fingerprint} last=$lastHandledFingerprint level=${candidate.clipboardDecisionLevel}"
+                )
+                if (!isLegacyMarker && handledFingerprint.isNotBlank() && handledFingerprint == lastHandledFingerprint) {
+                    Log.d(
+                        QUICK_FILL_LOG_TAG,
+                        "handled_match candidate=${candidate.fingerprint} last=$lastHandledFingerprint"
+                    )
                     SharedTaskDraftRepository.consumeClipboardCandidate(candidate.id)
                     return@collect
                 }
@@ -258,6 +265,10 @@ class ToDoMainViewModel @Inject constructor(
                 when (candidate.clipboardDecisionLevel) {
                     ClipboardDecisionLevel.ACCEPT,
                     ClipboardDecisionLevel.SOFT -> {
+                        Log.d(
+                            QUICK_FILL_LOG_TAG,
+                            "hint_show candidate=${candidate.fingerprint} level=${candidate.clipboardDecisionLevel}"
+                        )
                         setState {
                             copy(
                                 showClipboardSoftImportHint = true,
@@ -267,6 +278,10 @@ class ToDoMainViewModel @Inject constructor(
                     }
 
                     ClipboardDecisionLevel.REJECT -> {
+                        Log.d(
+                            QUICK_FILL_LOG_TAG,
+                            "candidate_reject candidate=${candidate.fingerprint}"
+                        )
                         SharedTaskDraftRepository.consumeClipboardCandidate(candidate.id)
                     }
                 }
@@ -350,10 +365,14 @@ class ToDoMainViewModel @Inject constructor(
     }
 
     private suspend fun consumeClipboardCandidate(candidate: SharedTaskDraft, positive: Boolean) {
-        val handledFingerprint = candidate.contentFingerprint.ifBlank { candidate.fingerprint }
+        val handledFingerprint = candidate.fingerprint
         if (handledFingerprint.isNotBlank()) {
             environment.setLastHandledClipboardFingerprint(handledFingerprint)
         }
+        Log.d(
+            QUICK_FILL_LOG_TAG,
+            "candidate_consume candidate=$handledFingerprint positive=$positive"
+        )
         environment.recordClipboardPatternFeedback(candidate.patternKey, positive)
         SharedTaskDraftRepository.consumeClipboardCandidate(candidate.id)
         setState {
@@ -363,4 +382,9 @@ class ToDoMainViewModel @Inject constructor(
             )
         }
     }
+
+    private companion object {
+        private const val QUICK_FILL_LOG_TAG = "QuickFillVM"
+    }
 }
+

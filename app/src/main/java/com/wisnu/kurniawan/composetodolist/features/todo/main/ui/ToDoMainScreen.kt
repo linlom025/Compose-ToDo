@@ -24,12 +24,10 @@ import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -71,7 +69,6 @@ import com.wisnu.kurniawan.composetodolist.model.ToDoStatus
 import com.wisnu.kurniawan.composetodolist.model.ToDoTask
 import java.time.LocalDate
 import java.time.LocalTime
-import kotlinx.coroutines.delay
 
 @Composable
 fun ToDoMainScreen(
@@ -95,8 +92,6 @@ fun ToDoMainScreen(
     onConfirmDeleteTask: () -> Unit,
     onDismissDeleteTask: () -> Unit,
     onQuadrantTitleLongClick: (TaskQuadrant) -> Unit,
-    onConfirmClipboardHint: () -> Unit,
-    onDismissClipboardHint: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -191,15 +186,6 @@ fun ToDoMainScreen(
         PgConfirmDeleteDialog(
             onConfirm = onConfirmDeleteTask,
             onDismiss = onDismissDeleteTask
-        )
-    }
-
-    if (state.showClipboardSoftImportHint) {
-        ClipboardImportHintOverlay(
-            title = state.pendingSoftClipboardCandidate?.title.orEmpty(),
-            durationSeconds = state.quickFillHintDurationSeconds,
-            onConfirm = onConfirmClipboardHint,
-            onDismiss = onDismissClipboardHint
         )
     }
 }
@@ -545,74 +531,5 @@ private fun TaskQuadrant.toColor(): Color {
         TaskQuadrant.Q2 -> ListBlue
         TaskQuadrant.Q3 -> ListOrange
         TaskQuadrant.Q4 -> ListGreen
-    }
-}
-
-@Composable
-private fun ClipboardImportHintOverlay(
-    title: String,
-    durationSeconds: Int,
-    onConfirm: () -> Unit,
-    onDismiss: () -> Unit,
-) {
-    val safeDurationSeconds = durationSeconds.coerceIn(3, 15)
-    val cardModifier = remember {
-        Modifier.pointerInput(Unit) {
-            detectTapGestures(onTap = {})
-        }
-    }
-
-    LaunchedEffect(title, safeDurationSeconds) {
-        if (title.isBlank()) return@LaunchedEffect
-        delay(safeDurationSeconds * 1_000L)
-        onDismiss()
-    }
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .pointerInput(title) {
-                detectTapGestures(onTap = { onDismiss() })
-            }
-            .padding(horizontal = 16.dp, vertical = 16.dp),
-        contentAlignment = Alignment.BottomCenter
-    ) {
-        Surface(
-            modifier = cardModifier.fillMaxWidth(),
-            shape = MaterialTheme.shapes.large,
-            tonalElevation = 6.dp,
-            color = MaterialTheme.colorScheme.surface
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 14.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Text(
-                    text = stringResource(R.string.todo_clipboard_soft_import_message, title),
-                    style = MaterialTheme.typography.bodyMedium
-                )
-
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    PgSecondaryButton(
-                        modifier = Modifier.weight(1f),
-                        onClick = onDismiss
-                    ) {
-                        Text(
-                            text = stringResource(R.string.todo_clipboard_soft_import_ignore),
-                            color = MaterialTheme.colorScheme.onSecondary
-                        )
-                    }
-
-                    PgButton(
-                        modifier = Modifier.weight(1f),
-                        onClick = onConfirm
-                    ) {
-                        Text(text = stringResource(R.string.todo_clipboard_soft_import_action))
-                    }
-                }
-            }
-        }
     }
 }
